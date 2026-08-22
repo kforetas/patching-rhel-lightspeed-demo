@@ -1,0 +1,31 @@
+---
+aws_vpc: patch_demo_vpc
+aws_vpc_cidr_block: 10.1.0.0/16 # adjust with your preference
+aws_vpc_subnet_name: patch_demo_subnet
+aws_subnet_cidr_block: 10.1.1.0/24 # adjust with your preference
+aws_igw_name: patch_demo_gtw
+aws_routetable_name: patch_demo_rtb
+aws_securitygroup_name: patch_demo_sg
+
+purpose: patch_demo
+
+aws_aap_instance_ami: ami-07fe9ea188b04b2e6 # ami of RHEL-9.8.0_HVM-20260618-x86_64-0-Hourly2-GP3
+aws_aap_instance_size: t2.xlarge # should not be modified
+aws_managed_instance:
+  dev:
+    # ami: ami-0154353c91d5d85fd # ami of RHEL-9.6.0_HVM-20260630-x86_64-0-Hourly2-GP3
+    ami: ami-06b08b819edcd2cf0 # ami of RHEL-9.7.0_HVM-20260513-x86_64-0-Hourly2-GP3
+    size: t2.small # can be bigger instance size
+  prod:
+    # ami: ami-0e5760175387def4e # ami of RHEL-9.6.0_HVM-20260125-x86_64-0-Hourly2-GP3
+    ami: ami-0dc4c409764b96fa9 # ami of RHEL-9.7.0_HVM-20260120-x86_64-0-Hourly2-GP3
+    size: t2.small # can be bigger instance size
+
+managed_vms_type: managed # should not be modified
+managed_vms_name_prefix: managed # should not be modified
+managed_vms_environment:
+  - dev # should not be modified
+  - prod # should not be modified
+
+aap_vm_type: aap # should not be modified
+aap_vm_name: aap01

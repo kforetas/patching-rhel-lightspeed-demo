@@ -1,0 +1,103 @@
+---
+- name: Prepare app test targets
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  tasks:
+    - name: Load remediation dataset
+      ansible.builtin.include_tasks:
+        file: "{{ playbook_dir }}/tasks/load_remediation_targets.yml"
+
+    - name: Validate AWS variables
+      ansible.builtin.assert:
+        that:
+          - aws_region is defined
+          - aws_region | length > 0
+        fail_msg: "aws_region must be defined."
+
+    - name: Get EC2 information for remediation targets
+      amazon.aws.ec2_instance_info:
+        region: "{{ aws_region }}"
+        filters:
+          private-dns-name: "{{ item.key }}"
+          instance-state-name:
+            - pending
+            - running
+            - stopping
+            - stopped
+      loop: "{{ remediation_dataset | dict2items }}"
+      loop_control:
+        label: "{{ item.key }}"
+      register: remediation_ec2_info
+
+    - name: Validate that exactly one EC2 instance was found
+      ansible.builtin.assert:
+        that:
+          - item.instances is defined
+          - item.instances | length == 1
+        fail_msg: >-
+          Expected exactly one EC2 instance for inventory host
+          '{{ item.item.key }}', but found
+          {{ item.instances | default([]) | length }}.
+      loop: "{{ remediation_ec2_info.results }}"
+      loop_control:
+        label: "{{ item.item.key }}"
+
+    - name: Create remediation group with EC2 instance information
+      ansible.builtin.add_host:
+        name: "{{ item.item.key }}"
+        groups: "{{ remediation_group }}"
+        remediation_advisories: >-
+          {{ item.item.value | unique | sort | list }}
+        ec2_public_dns_name: "{{ item.instances[0].public_dns_name }}"
+        ec2_private_dns_name: "{{ item.instances[0].private_dns_name }}"
+      loop: "{{ remediation_ec2_info.results }}"
+      loop_control:
+        label: >-
+          {{ item.item.key }} -> {{ item.instances[0].public_dns_name }}
+
+    - name: Show resolved test targets
+      ansible.builtin.debug:
+        msg:
+          host: "{{ item }}"
+          public_dns_name: "{{ hostvars[item].public_dns_name }}"
+      loop: "{{ groups[remediation_group] }}"
+      loop_control:
+        label: "{{ item }}"
+
+- name: Test the application of the restarted instances
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    remediation_group: canonical_remediation_targets
+
+  tasks:
+    - name: "Test the application"
+      ansible.builtin.debug:
+        msg: "Performing Test"
+
+    - name: GET the default weblog page
+      ansible.builtin.uri:
+        url: "https://{{ hostvars[item].public_dns_name }}/wordpress/"
+        method: GET
+        status_code: 200
+        return_content: true
+        validate_certs: false
+      register: default_weblog_page
+      loop: "{{ groups[remediation_group] }}"
+      loop_control:
+        label: >-
+          {{ item }} -> {{ hostvars[item].public_dns_name }}
+
+    - name: Check for the site name supplied in config
+      ansible.builtin.fail:
+        msg: "Site Check Failed - could not access default weblog {{ wp_weblog_title }}"
+      when: item.content is not search(wp_weblog_title)
+      loop: "{{ default_weblog_page.results }}"
+
+    - name: Test results
+      ansible.builtin.debug:
+        msg: "All tests succeeded."

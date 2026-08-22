@@ -1,0 +1,27 @@
+---
+- name: Validate common remediation variables
+  ansible.builtin.assert:
+    that:
+      - remediation_dataset_file is defined
+      - remediation_group is defined
+
+- name: Read canonical remediation dataset
+  ansible.builtin.include_vars:
+    file: "{{ remediation_dataset_file }}"
+    name: remediation_dataset
+
+- name: Validate remediation dataset structure
+  ansible.builtin.assert:
+    that:
+      - remediation_dataset is mapping
+      - remediation_dataset | length > 0
+
+- name: Validate remediation hosts against inventory
+  ansible.builtin.assert:
+    that:
+      - item.key in groups['all']
+    fail_msg: >-
+      Host '{{ item.key }}' is not present in the selected inventory.
+  loop: "{{ remediation_dataset | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"

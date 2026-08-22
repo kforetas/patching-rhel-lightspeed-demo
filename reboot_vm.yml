@@ -1,0 +1,29 @@
+---
+- name: Prepare reboot targets
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  tasks:
+    - name: Load common remediation targets
+      ansible.builtin.include_tasks:
+        file: "{{ playbook_dir }}/tasks/load_remediation_targets.yml"
+
+    - name: Create remediation group
+      ansible.builtin.include_tasks:
+        file: "{{ playbook_dir }}/tasks/create_remediation_group.yml"
+
+
+- name: Reboot remediated systems
+  hosts: canonical_remediation_targets
+  gather_facts: false
+  become: true
+  serial: "{{ reboot_serial | default(5) }}"
+
+  tasks:
+    - name: Reboot host
+      ansible.builtin.reboot:
+        msg: "Reboot initiated by AAP after patching"
+        reboot_timeout: 900
+        post_reboot_delay: 15
+        test_command: whoami

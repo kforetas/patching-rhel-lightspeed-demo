@@ -1,0 +1,90 @@
+---
+- name: Prepare snapshot targets
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  tasks:
+    - name: Load remediation dataset
+      ansible.builtin.include_tasks:
+        file: "{{ playbook_dir }}/tasks/load_remediation_targets.yml"
+
+    - name: Validate AWS variables
+      ansible.builtin.assert:
+        that:
+          - aws_region is defined
+          - aws_region | length > 0
+        fail_msg: "aws_region must be defined."
+
+    - name: Get EC2 information for remediation targets
+      amazon.aws.ec2_instance_info:
+        region: "{{ aws_region }}"
+        filters:
+          private-dns-name: "{{ item.key }}"
+          instance-state-name:
+            - pending
+            - running
+            - stopping
+            - stopped
+      loop: "{{ remediation_dataset | dict2items }}"
+      loop_control:
+        label: "{{ item.key }}"
+      register: remediation_ec2_info
+
+    - name: Validate that exactly one EC2 instance was found
+      ansible.builtin.assert:
+        that:
+          - item.instances is defined
+          - item.instances | length == 1
+        fail_msg: >-
+          Expected exactly one EC2 instance for inventory host
+          '{{ item.item.key }}', but found
+          {{ item.instances | default([]) | length }}.
+      loop: "{{ remediation_ec2_info.results }}"
+      loop_control:
+        label: "{{ item.item.key }}"
+
+    - name: Create remediation group with EC2 instance information
+      ansible.builtin.add_host:
+        name: "{{ item.item.key }}"
+        groups: "{{ remediation_group }}"
+        remediation_advisories: >-
+          {{ item.item.value | unique | sort | list }}
+        ec2_instance_id: "{{ item.instances[0].instance_id }}"
+        ec2_private_dns_name: "{{ item.instances[0].private_dns_name }}"
+        ec2_root_device_name: "{{ item.instances[0].root_device_name }}"
+      loop: "{{ remediation_ec2_info.results }}"
+      loop_control:
+        label: >-
+          {{ item.item.key }} -> {{ item.instances[0].instance_id }}
+
+    - name: Show resolved snapshot targets
+      ansible.builtin.debug:
+        msg:
+          host: "{{ item }}"
+          instance_id: "{{ hostvars[item].ec2_instance_id }}"
+          root_device: "{{ hostvars[item].ec2_root_device_name }}"
+      loop: "{{ groups[remediation_group] }}"
+      loop_control:
+        label: "{{ item }}"
+
+- name: Create pre-patch snapshots
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    remediation_group: canonical_remediation_targets
+
+  tasks:
+    - name: Snapshot root volume of each remediation target
+      amazon.aws.ec2_snapshot:
+        instance_id: "{{ hostvars[item].ec2_instance_id }}"
+        device_name: "{{ hostvars[item].ec2_root_device_name }}"
+        description: "Pre-patch snapshot for {{ item }}"
+        region: "{{ aws_region }}"
+        wait: true
+      loop: "{{ groups[remediation_group] }}"
+      loop_control:
+        label: >-
+          {{ item }} -> {{ hostvars[item].ec2_instance_id }}

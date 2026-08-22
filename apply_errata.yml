@@ -1,0 +1,122 @@
+---
+- name: Prepare errata remediation targets
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  tasks:
+    - name: Load common remediation targets
+      ansible.builtin.include_tasks:
+        file: "{{ playbook_dir }}/tasks/load_remediation_targets.yml"
+
+    - name: Validate advisory lists
+      ansible.builtin.assert:
+        that:
+          - item.value is sequence
+          - item.value is not string
+          - item.value | length > 0
+        fail_msg: >-
+          Host '{{ item.key }}' must have a non-empty advisory list.
+      loop: "{{ remediation_dataset | dict2items }}"
+      loop_control:
+        label: "{{ item.key }}"
+
+    - name: Validate RHSA identifiers
+      ansible.builtin.assert:
+        that:
+          - item.1 is match('^RHSA-[0-9]{4}:[0-9]+$')
+        fail_msg: >-
+          Invalid RHSA identifier '{{ item.1 }}'
+          for host '{{ item.0.key }}'.
+      loop: >-
+        {{
+          remediation_dataset
+          | dict2items
+          | subelements('value')
+        }}
+      loop_control:
+        label: "{{ item.0.key }} <- {{ item.1 }}"
+
+    - name: Create remediation group
+      ansible.builtin.include_tasks:
+        file: "{{ playbook_dir }}/tasks/create_remediation_group.yml"
+
+    - name: Show errata assigned to each host
+      ansible.builtin.debug:
+        msg:
+          host: "{{ item }}"
+          advisories: "{{ hostvars[item].remediation_advisories }}"
+      loop: "{{ groups[remediation_group] }}"
+      loop_control:
+        label: "{{ item }}"
+
+
+- name: Apply approved Red Hat security advisories
+  hosts: canonical_remediation_targets
+  gather_facts: true
+  become: true
+  serial: "{{ patch_serial | default(5) }}"
+
+  vars:
+    advisory_arguments: >-
+      {{
+        remediation_advisories
+        | map('regex_replace', '^(.*)$', '--advisory=\1')
+        | list
+      }}
+
+  tasks:
+    - name: Show advisories assigned to this host
+      ansible.builtin.debug:
+        msg:
+          host: "{{ inventory_hostname }}"
+          package_manager: "{{ ansible_facts.pkg_mgr }}"
+          advisories: "{{ remediation_advisories }}"
+
+    - name: Check whether approved advisories are applicable
+      ansible.builtin.command:
+        argv: >-
+          {{
+            [ansible_facts.pkg_mgr, 'check-update', '-q']
+            + advisory_arguments
+          }}
+      register: advisory_check
+      changed_when: false
+      failed_when: advisory_check.rc not in [0, 100]
+
+    - name: Report when no approved advisory is applicable
+      ansible.builtin.debug:
+        msg: >-
+          None of the approved advisories currently require an update
+          on {{ inventory_hostname }}.
+      when: advisory_check.rc == 0
+
+    - name: Apply approved advisories
+      ansible.builtin.command:
+        argv: >-
+          {{
+            [ansible_facts.pkg_mgr, 'update-minimal', '-d', '2', '-y']
+            + advisory_arguments
+          }}
+      register: advisory_update
+      when: advisory_check.rc == 100
+      changed_when: advisory_update.rc == 0
+
+    - name: Store remediation result for this host
+      ansible.builtin.set_fact:
+        remediation_result:
+          host: "{{ inventory_hostname }}"
+          advisories: "{{ remediation_advisories }}"
+          updates_available: "{{ advisory_check.rc == 100 }}"
+          update_executed: "{{ advisory_check.rc == 100 }}"
+          update_rc: >-
+            {{
+              advisory_update.rc
+              if advisory_update is defined
+              and advisory_update.rc is defined
+              else none
+            }}
+
+    - name: Show remediation result
+      ansible.builtin.debug:
+        var: remediation_result

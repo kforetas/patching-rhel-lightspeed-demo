@@ -1,0 +1,10 @@
+---
+purpose: patch_demo
+
+aws_region: ap-northeast-1 # adjust with your preference
+wp_weblog_title: "DemoSite"
+
+# Location of remediation_dataset downloaded.
+remediation_dataset_file: "{{ playbook_dir }}/datasets/remediation_dataset.yml"
+
+remediation_group: canonical_remediation_targets

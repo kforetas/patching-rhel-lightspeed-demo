@@ -1,0 +1,7 @@
+---
+collections:
+  - amazon.aws
+  - community.crypto
+  - community.mysql
+  - redhat.rhel_system_roles
+  - redhat.insights

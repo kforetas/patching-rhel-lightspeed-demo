@@ -1,0 +1,239 @@
+---
+- name: Publish remediation dataset to Git
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    git_branch: "main"
+
+    git_commit_user_name: "AAP Automation"
+    git_commit_user_email: "aap-automation@example.com"
+    git_commit_message: "Update remediation dataset"
+
+    remediation_dataset_relative_path: "datasets/remediation_dataset.yml"
+
+  tasks:
+    - name: Load remediation dataset from file for local execution
+      ansible.builtin.include_vars:
+        file: "{{ remediation_dataset_file }}"
+        name: remediation_dataset
+      when: remediation_dataset is not defined
+
+    - name: Validate required variables
+      ansible.builtin.assert:
+        that:
+          - remediation_dataset is defined
+          - remediation_dataset is mapping
+          - remediation_dataset | length > 0
+          - git_repository_url is defined
+          - git_repository_url | length > 0
+          - git_branch is defined
+          - git_branch | length > 0
+          - remediation_dataset_relative_path is defined
+          - remediation_dataset_relative_path | length > 0
+        fail_msg: >-
+          remediation_dataset, git_repository_url, git_branch, and
+          remediation_dataset_relative_path must be defined.
+
+    - name: Create temporary publishing directory
+      ansible.builtin.tempfile:
+        state: directory
+        prefix: remediation-publisher-
+      register: publishing_temp_dir
+
+    - name: Set publishing repository path
+      ansible.builtin.set_fact:
+        publishing_repo_dir: >-
+          {{ publishing_temp_dir.path }}/repository
+
+    - name: Create temporary SSH key
+      ansible.builtin.tempfile:
+        state: file
+        prefix: git-key-
+      register: git_key
+      no_log: true
+
+    - name: Write decoded SSH key
+      ansible.builtin.copy:
+        content: "{{ lookup('env', 'GIT_SSH_PRIVATE_KEY_B64') | b64decode }}"
+        dest: "{{ git_key.path }}"
+        mode: "0600"
+      no_log: true
+
+    - name: Publish dataset
+      environment:
+        GIT_SSH_COMMAND: >-
+          ssh -i {{ git_key.path }}
+          -o IdentitiesOnly=yes
+          -o StrictHostKeyChecking=accept-new
+
+      block:
+        - name: Clone target Git repository
+          ansible.builtin.git:
+            repo: "{{ git_repository_url }}"
+            dest: "{{ publishing_repo_dir }}"
+            version: "{{ git_branch }}"
+            key_file: "{{ git_key.path }}"
+            single_branch: true
+            depth: 1
+            update: true
+            force: false
+            accept_hostkey: true
+
+        - name: Create remediation dataset parent directory
+          ansible.builtin.file:
+            path: >-
+              {{
+                publishing_repo_dir
+                ~ '/'
+                ~ (
+                    remediation_dataset_relative_path
+                    | ansible.builtin.dirname
+                  )
+              }}
+            state: directory
+            mode: "0755"
+
+        - name: Write remediation dataset into repository
+          ansible.builtin.copy:
+            content: |
+              {{ remediation_dataset | to_nice_yaml(indent=2) }}
+            dest: >-
+              {{
+                publishing_repo_dir
+                ~ '/'
+                ~ remediation_dataset_relative_path
+              }}
+            mode: "0644"
+
+        - name: Check whether remediation dataset changed
+          ansible.builtin.command:
+            argv:
+              - git
+              - status
+              - --porcelain
+              - --
+              - "{{ remediation_dataset_relative_path }}"
+            chdir: "{{ publishing_repo_dir }}"
+          register: remediation_git_status
+          changed_when: false
+
+        - name: Commit and push remediation dataset
+          when: remediation_git_status.stdout | length > 0
+          block:
+            - name: Configure repository Git author name
+              ansible.builtin.command:
+                argv:
+                  - git
+                  - config
+                  - --local
+                  - user.name
+                  - "{{ git_commit_user_name }}"
+                chdir: "{{ publishing_repo_dir }}"
+              changed_when: false
+
+            - name: Configure repository Git author email
+              ansible.builtin.command:
+                argv:
+                  - git
+                  - config
+                  - --local
+                  - user.email
+                  - "{{ git_commit_user_email }}"
+                chdir: "{{ publishing_repo_dir }}"
+              changed_when: false
+
+            - name: Stage remediation dataset
+              ansible.builtin.command:
+                argv:
+                  - git
+                  - add
+                  - --
+                  - "{{ remediation_dataset_relative_path }}"
+                chdir: "{{ publishing_repo_dir }}"
+              changed_when: true
+
+            - name: Commit remediation dataset
+              ansible.builtin.command:
+                argv:
+                  - git
+                  - commit
+                  - -m
+                  - "{{ git_commit_message }}"
+                  - --
+                  - "{{ remediation_dataset_relative_path }}"
+                chdir: "{{ publishing_repo_dir }}"
+              register: remediation_git_commit
+              changed_when: remediation_git_commit.rc == 0
+
+            - name: Rebase onto latest remote branch
+              ansible.builtin.command:
+                argv:
+                  - git
+                  - pull
+                  - --rebase
+                  - origin
+                  - "{{ git_branch }}"
+                chdir: "{{ publishing_repo_dir }}"
+              register: remediation_git_rebase
+              changed_when: >-
+                'Already up to date.' not in remediation_git_rebase.stdout
+
+            - name: Push remediation dataset commit
+              ansible.builtin.command:
+                argv:
+                  - git
+                  - push
+                  - origin
+                  - "HEAD:{{ git_branch }}"
+                chdir: "{{ publishing_repo_dir }}"
+              register: remediation_git_push
+              changed_when: remediation_git_push.rc == 0
+
+            - name: Get published commit identifier
+              ansible.builtin.command:
+                argv:
+                  - git
+                  - rev-parse
+                  - HEAD
+                chdir: "{{ publishing_repo_dir }}"
+              register: published_commit
+              changed_when: false
+
+        - name: Report unchanged remediation dataset
+          ansible.builtin.debug:
+            msg: >-
+              {{ remediation_dataset_relative_path }} is already current
+              on branch {{ git_branch }}. No commit was created.
+          when: remediation_git_status.stdout | length == 0
+
+        - name: Report published remediation dataset
+          ansible.builtin.debug:
+            msg:
+              repository: "{{ git_repository_url }}"
+              branch: "{{ git_branch }}"
+              file: "{{ remediation_dataset_relative_path }}"
+              commit: "{{ published_commit.stdout }}"
+          when: remediation_git_status.stdout | length > 0
+
+        - name: Export publication result
+          ansible.builtin.set_stats:
+            data:
+              remediation_dataset_published: >-
+                {{ remediation_git_status.stdout | length > 0 }}
+              remediation_dataset_git_branch: "{{ git_branch }}"
+              remediation_dataset_git_commit: >-
+                {{
+                  published_commit.stdout
+                  if remediation_git_status.stdout | length > 0
+                  else ''
+                }}
+
+      always:
+        - name: Remove temporary publishing directory
+          ansible.builtin.file:
+            path: "{{ publishing_temp_dir.path }}"
+            state: absent
+          when:
+            - publishing_temp_dir.path is defined

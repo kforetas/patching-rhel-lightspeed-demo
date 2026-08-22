@@ -1,0 +1,9 @@
+---
+- name: Add remediation targets to temporary group
+  ansible.builtin.add_host:
+    name: "{{ item.key }}"
+    groups: "{{ remediation_group }}"
+    remediation_advisories: "{{ item.value | unique | sort | list }}"
+  loop: "{{ remediation_dataset | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
