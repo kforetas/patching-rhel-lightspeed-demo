@@ -10,12 +10,13 @@
       - aap_installer_dest_path is defined
       - aap_admin_passwd is defined
       - aap_pg_passwd is defined
-      - rhsm_username
-      - rhsm_passwd
+      - rhsm_username is defined
+      - rhsm_passwd is defined
     fail_msg: "Required variables not set"
 
 - name: Register to Red Hat Subscription Management
-  redhat.rhel_system_roles.redhat_subscription:
+  ansible.builtin.redhat_subscription:
+  # redhat.rhel_system_roles.redhat_subscription:
     state: present
     username: "{{ rhsm_username }}"
     password: "{{ rhsm_passwd }}"

@@ -1,5 +1,5 @@
 ---
 # vars file for aap
-aap_local_installer_path: "/path_to/ansible-automation-platform-containerized-setup-bundle-2.7-2-x86_64.tar.gz" # local path to the AAP setup file
+aap_local_installer_path: "/Users/kemori/dev/patch-aap-demo/ansible-automation-platform-containerized-setup-bundle-2.7-6-x86_64.tar.gz" # local path to the AAP setup file
 aap_base_dir: "/home/ec2-user" # path to the ansible related file uploaded
-aap_installer_dest_path: "ansible-automation-platform-containerized-setup-bundle-2.7-2-x86_64" # extracted directory name corresponding to the AAP setup file
+aap_installer_dest_path: "ansible-automation-platform-containerized-setup-bundle-2.7-6-x86_64" # extracted directory name corresponding to the AAP setup file

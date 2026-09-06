@@ -4,8 +4,8 @@
 - name: Fail if variables not defined
   ansible.builtin.assert:
     that:
-      - rhsm_username
-      - rhsm_passwd
+      - rhsm_username is defined
+      - rhsm_passwd is defined
       - mysql_root_passwd is defined
       - mysql_wp_user is defined
       - mysql_wp_passwd is defined
@@ -19,7 +19,8 @@
     fail_msg: "Required variables not set"
 
 - name: Register to Red Hat Subscription Management
-  redhat.rhel_system_roles.redhat_subscription:
+  ansible.builtin.redhat_subscription:
+  # redhat.rhel_system_roles.redhat_subscription:
     state: present
     username: "{{ rhsm_username }}"
     password: "{{ rhsm_passwd }}"
@@ -42,9 +43,16 @@
   ansible.builtin.meta: flush_handlers
 
 - name: Ensure systems are connected to Insights
-  redhat.insights.insights_register:
-    state: present
+  ansible.builtin.command: insights-client --register
   become: true
+  register: insights_result
+  changed_when: insights_result.rc == 0
+  failed_when: false
+
+  # ansible.builtin.redhat_insights:
+  # redhat.insights.insights_register:
+  #  state: present
+  # become: true
 
 - name: Install mysql and other related packages
   ansible.builtin.dnf:
