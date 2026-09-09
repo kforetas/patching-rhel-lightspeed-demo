@@ -15,11 +15,11 @@ aws_managed_instance:
   dev:
     # ami: ami-0154353c91d5d85fd # ami of RHEL-9.6.0_HVM-20260630-x86_64-0-Hourly2-GP3
     ami: ami-06b08b819edcd2cf0 # ami of RHEL-9.7.0_HVM-20260513-x86_64-0-Hourly2-GP3
-    size: t2.small # can be bigger instance size
+    size: t3.small # can be bigger instance size
   prod:
     # ami: ami-0e5760175387def4e # ami of RHEL-9.6.0_HVM-20260125-x86_64-0-Hourly2-GP3
     ami: ami-0dc4c409764b96fa9 # ami of RHEL-9.7.0_HVM-20260120-x86_64-0-Hourly2-GP3
-    size: t2.small # can be bigger instance size
+    size: t3.small # can be bigger instance size
 
 managed_vms_type: managed # should not be modified
 managed_vms_name_prefix: managed # should not be modified
