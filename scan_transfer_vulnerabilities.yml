@@ -12,17 +12,30 @@
       register: dnf_output
       changed_when: false
 
-    # 2. ログをパース（正規表現を柔軟化）
-    - name: Parse DNF output into structured list
-      ansible.builtin.set_fact:
-        vulnerabilities_list: >-
-          {{
-            dnf_output.stdout_lines
-            | select('match', '^\s*RHSA-\\d+:\\S+')
-            | map('regex_replace', '^\s*(RHSA-\\d+:\\S+)\\s+([\\w]+)/Sec\\.\\s+(\\S+).*', '{"advisory_id": "\\1", "risk_rating": "\\2", "package": "\\3"}')
-            | map('from_json')
-            | list
-          }}
+    # 2. Python を使って標準出力を確実に構造化パース
+    - name: Parse DNF output using Python
+      ansible.builtin.shell: |
+        python3 -c '
+        import sys, json, re
+
+        raw = """{{ dnf_output.stdout }}"""
+        pattern = re.compile(r"(RHSA-\d+:\S+)\s+([\w]+)/Sec\.\s+(\S+)")
+        items = []
+
+        for line in raw.splitlines():
+            match = pattern.search(line)
+            if match:
+                advisory, severity, package = match.groups()
+                items.append({
+                    "advisory_id": advisory,
+                    "risk_rating": severity,
+                    "package": package
+                })
+
+        print(json.dumps(items))
+        '
+      register: parsed_json_raw
+      changed_when: false
 
     # 3. AAP の Runner 上に一時 JSON ファイルとして保存 (delegate_to: localhost)
     - name: Save JSON payload temporarily on AAP runner
@@ -33,7 +46,7 @@
               "hostname": inventory_hostname,
               "environment": 'Prod' if 'prod' in group_names or 'prod' in inventory_hostname else 'Dev',
               "scan_time": now(utc=True, fmt='%Y-%m-%d %H:%M:%S UTC'),
-              "vulnerabilities": vulnerabilities_list
+              "vulnerabilities": parsed_json_raw.stdout | from_json
             } | to_nice_json(indent=2)
           }}
         dest: "/tmp/{{ inventory_hostname }}.json"
