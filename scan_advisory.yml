@@ -1,6 +1,7 @@
 ---
-- name: Scan RHEL vulnerabilities and build remediation dataset
-  hosts: all
+# Play 1: スキャン対象ホストで DNF スキャンを実行し、Advisory単位でグループ化して AAP 制御ノードに保存
+- name: Scan RHEL vulnerabilities on managed hosts
+  hosts: tag_type_managed
   become: true
   gather_facts: false
 
@@ -11,19 +12,69 @@
       register: dnf_output
       changed_when: false
 
-    # 2. 出力結果から RHSA ID (RHSA-YYYY:NNNN) を抽出
-    - name: Extract unique RHSA IDs
-      ansible.builtin.set_fact:
-        server_rhsa_ids: "{{ dnf_output.stdout | regex_findall('RHSA-[0-9]{4}:[0-9]+') | unique | sort }}"
+    # 2. Python で Advisory ID ごとにパッケージをリスト化してグループ化
+    - name: Parse and group DNF output by Advisory ID
+      ansible.builtin.shell: |
+        python3 -c '
+        import sys, json, re
 
-    # 3. ログに出力（デバッグ用）
-    - name: Display detected security advisories for this host
-      ansible.builtin.debug:
-        msg: "Host [{{ inventory_hostname }}] requires security patches: {{ server_rhsa_ids }}"
+        raw = """{{ dnf_output.stdout }}"""
+        pattern = re.compile(r"(RHSA-\d+:\S+)\s+([\w]+)/Sec\.\s+(\S+)")
+        advisories_map = {}
 
-    # 4. 後続のワークフロー・ジョブへ対象リストを引き継ぐ
-    - name: Pass remediation dataset to AAP Workflow
-      ansible.builtin.set_stats:
-        data:
-          remediation_dataset: "{{ { inventory_hostname: server_rhsa_ids } }}"
-        per_host: false
+        for line in raw.splitlines():
+            match = pattern.search(line)
+            if match:
+                advisory, severity, package = match.groups()
+                if advisory not in advisories_map:
+                    advisories_map[advisory] = {
+                        "advisory_id": advisory,
+                        "risk_rating": severity,
+                        "packages": []
+                    }
+                if package not in advisories_map[advisory]["packages"]:
+                    advisories_map[advisory]["packages"].append(package)
+
+        print(json.dumps(list(advisories_map.values())))
+        '
+      register: parsed_json_raw
+      changed_when: false
+
+    # 3. AAP Runner 上に一時 JSON ファイルとして保存
+    - name: Save JSON payload temporarily on AAP runner
+      ansible.builtin.copy:
+        content: >-
+          {{
+            {
+              "hostname": inventory_hostname,
+              "environment": 'Prod' if 'prod' in group_names or 'prod' in inventory_hostname else 'Dev',
+              "scan_time": now(utc=True, fmt='%Y-%m-%d %H:%M:%S UTC'),
+              "vulnerabilities": parsed_json_raw.stdout | from_json
+            } | to_nice_json(indent=2)
+          }}
+        dest: "/tmp/{{ inventory_hostname }}.json"
+        mode: "0644"
+      delegate_to: localhost
+      become: false
+
+
+# Play 2: Streamlit サーバーへ copy モジュールで直接 JSON を配置
+- name: Deploy JSON files to Streamlit Web Portal
+  hosts: tag_Name_demo_web_portal
+  become: false
+  gather_facts: false
+
+  tasks:
+    - name: Copy generated JSON files to Streamlit data directory
+      ansible.builtin.copy:
+        src: "/tmp/{{ item }}.json"
+        dest: "/home/ec2-user/patch-aap-demo/src/data/{{ item }}.json"
+        mode: "0644"
+      loop: "{{ groups['tag_type_managed'] }}"
+
+    - name: Cleanup temporary JSON files on AAP runner
+      ansible.builtin.file:
+        path: "/tmp/{{ item }}.json"
+        state: absent
+      delegate_to: localhost
+      loop: "{{ groups['tag_type_managed'] }}"
