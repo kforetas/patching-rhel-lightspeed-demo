@@ -12,14 +12,14 @@
       register: dnf_output
       changed_when: false
 
-    # 2. ログを正規表現でパース
+    # 2. ログをパース（正規表現を柔軟化）
     - name: Parse DNF output into structured list
       ansible.builtin.set_fact:
         vulnerabilities_list: >-
           {{
             dnf_output.stdout_lines
-            | select('match', '^RHSA-\\d+:\\S+')
-            | map('regex_replace', '^(RHSA-\\d+:\\S+)\\s+([\\w]+)/Sec\\.\\s+(\\S+)', '{"advisory_id": "\\1", "risk_rating": "\\2", "package": "\\3"}')
+            | select('match', '^\s*RHSA-\\d+:\\S+')
+            | map('regex_replace', '^\s*(RHSA-\\d+:\\S+)\\s+([\\w]+)/Sec\\.\\s+(\\S+).*', '{"advisory_id": "\\1", "risk_rating": "\\2", "package": "\\3"}')
             | map('from_json')
             | list
           }}
