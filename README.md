@@ -134,6 +134,7 @@ At leaset the following four credentails need to be defined.
    - Organization: `Default`
    - Credential Type: `Machine`
    - SSH Private Key: your AWS private key
+   - Username: `ec2-user`
 4. Click `Create credential` button.
 
 #### Credential for Red Hat Lightspeed API
