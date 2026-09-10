@@ -1,0 +1,29 @@
+---
+- name: Scan RHEL vulnerabilities and build remediation dataset
+  hosts: all
+  become: true
+  gather_facts: false
+
+  tasks:
+    # 1. 未適用のセキュリティアドバイザリを取得
+    - name: Get available security advisories from DNF
+      ansible.builtin.command: dnf updateinfo --list --security --available
+      register: dnf_output
+      changed_when: false
+
+    # 2. 出力結果から RHSA ID (RHSA-YYYY:NNNN) を抽出
+    - name: Extract unique RHSA IDs
+      ansible.builtin.set_fact:
+        server_rhsa_ids: "{{ dnf_output.stdout | regex_findall('RHSA-[0-9]{4}:[0-9]+') | unique | sort }}"
+
+    # 3. ログに出力（デバッグ用）
+    - name: Display detected security advisories for this host
+      ansible.builtin.debug:
+        msg: "Host [{{ inventory_hostname }}] requires security patches: {{ server_rhsa_ids }}"
+
+    # 4. 後続のワークフロー・ジョブへ対象リストを引き継ぐ
+    - name: Pass remediation dataset to AAP Workflow
+      ansible.builtin.set_stats:
+        data:
+          remediation_dataset: "{{ { inventory_hostname: server_rhsa_ids } }}"
+        per_host: false
