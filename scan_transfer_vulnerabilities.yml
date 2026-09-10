@@ -1,0 +1,66 @@
+---
+# Play 1: スキャン対象ホストで DNF スキャンを実行し、AAP 制御ノード（Runner）に一時保存
+- name: Scan RHEL vulnerabilities on managed hosts
+  hosts: tag_type_managed
+  become: true
+  gather_facts: false
+
+  tasks:
+    # 1. 未適用のセキュリティアドバイザリを取得
+    - name: Get available security advisories from DNF
+      ansible.builtin.command: dnf updateinfo --list --security --available
+      register: dnf_output
+      changed_when: false
+
+    # 2. ログを正規表現でパース
+    - name: Parse DNF output into structured list
+      ansible.builtin.set_fact:
+        vulnerabilities_list: >-
+          {{
+            dnf_output.stdout_lines
+            | select('match', '^RHSA-\\d+:\\S+')
+            | map('regex_replace', '^(RHSA-\\d+:\\S+)\\s+([\\w]+)/Sec\\.\\s+(\\S+)', '{"advisory_id": "\\1", "risk_rating": "\\2", "package": "\\3"}')
+            | map('from_json')
+            | list
+          }}
+
+    # 3. AAP の Runner 上に一時 JSON ファイルとして保存 (delegate_to: localhost)
+    - name: Save JSON payload temporarily on AAP runner
+      ansible.builtin.copy:
+        content: >-
+          {{
+            {
+              "hostname": inventory_hostname,
+              "environment": 'Prod' if 'prod' in group_names or 'prod' in inventory_hostname else 'Dev',
+              "scan_time": now(utc=True, fmt='%Y-%m-%d %H:%M:%S UTC'),
+              "vulnerabilities": vulnerabilities_list
+            } | to_nice_json(indent=2)
+          }}
+        dest: "/tmp/{{ inventory_hostname }}.json"
+        mode: "0644"
+      delegate_to: localhost
+      become: false
+
+
+# Play 2: Streamlit サーバーへ copy モジュールで直接 JSON を配置
+- name: Deploy JSON files to Streamlit Web Portal
+  hosts: tag_Name_demo_web_portal
+  become: false
+  gather_facts: false
+
+  tasks:
+    # 4. 生成された全スキャン結果を Streamlit サーバーのデータディレクトリへ転送
+    - name: Copy generated JSON files to Streamlit data directory
+      ansible.builtin.copy:
+        src: "/tmp/{{ item }}.json"
+        dest: "/home/ec2-user/patch-aap-demo/src/data/{{ item }}.json"
+        mode: "0644"
+      loop: "{{ groups['tag_type_managed'] }}"
+
+    # 5. AAP Runner 上の一時ファイルをクリーンアップ
+    - name: Cleanup temporary JSON files on AAP runner
+      ansible.builtin.file:
+        path: "/tmp/{{ item }}.json"
+        state: absent
+      delegate_to: localhost
+      loop: "{{ groups['tag_type_managed'] }}"
