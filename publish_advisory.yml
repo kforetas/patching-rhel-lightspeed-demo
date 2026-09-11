@@ -32,36 +32,16 @@
       ansible.builtin.set_fact:
         publishing_repo_dir: "{{ publishing_temp_dir.path }}/repository"
 
-    - name: Create temporary SSH key file
-      ansible.builtin.tempfile:
-        state: file
-        prefix: git-key-
-      register: git_key
-
-    # 生テキスト/Base64のどちらでも安全にOpenSSH鍵として書き出し
-    - name: Process and Write valid SSH Private Key
-      vars:
-        raw_env_key: "{{ lookup('env', 'GIT_SSH_PRIVATE_KEY_B64') }}"
-      ansible.builtin.copy:
-        content: >-
-          {{
-            (raw_env_key if ('BEGIN OPENSSH PRIVATE KEY' in raw_env_key or 'BEGIN RSA PRIVATE KEY' in raw_env_key)
-            else (raw_env_key | b64decode)) | trim
-          }}
-        dest: "{{ git_key.path }}"
-        mode: "0600"
-      no_log: true
-
     - name: Publish dataset
       environment:
-        GIT_SSH_COMMAND: "ssh -i {{ git_key.path }} -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new"
+        GIT_SSH_COMMAND: "ssh -o StrictHostKeyChecking=accept-new"
       block:
+        # key_file を指定せず AAP のコンテキストに任せる
         - name: Clone target Git repository
           ansible.builtin.git:
             repo: "{{ git_repository_url }}"
             dest: "{{ publishing_repo_dir }}"
             version: "{{ git_branch }}"
-            key_file: "{{ git_key.path }}"
             single_branch: true
             depth: 1
             update: true
@@ -108,7 +88,6 @@
                 - { key: 'user.email', value: '{{ git_commit_user_email }}' }
               changed_when: false
 
-            # 修正箇所: args / chdir の構文を修正
             - name: Stage, Commit and Push
               ansible.builtin.shell: |
                 git add "{{ remediation_dataset_relative_path }}"
@@ -123,9 +102,3 @@
             path: "{{ publishing_temp_dir.path }}"
             state: absent
           when: publishing_temp_dir.path is defined
-
-        - name: Remove temporary SSH key
-          ansible.builtin.file:
-            path: "{{ git_key.path }}"
-            state: absent
-          when: git_key.path is defined
