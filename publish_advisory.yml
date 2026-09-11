@@ -38,12 +38,11 @@
         prefix: git-key-
       register: git_key
 
-    # --- 鍵フォーマット完全修正タスク ---
+    # 生テキスト/Base64のどちらでも安全にOpenSSH鍵として書き出し
     - name: Process and Write valid SSH Private Key
       vars:
         raw_env_key: "{{ lookup('env', 'GIT_SSH_PRIVATE_KEY_B64') }}"
       ansible.builtin.copy:
-        # 生テキスト(-----BEGIN)かBase64文字列かを判定して正しく整形書き出し
         content: >-
           {{
             (raw_env_key if ('BEGIN OPENSSH PRIVATE KEY' in raw_env_key or 'BEGIN RSA PRIVATE KEY' in raw_env_key)
@@ -109,12 +108,14 @@
                 - { key: 'user.email', value: '{{ git_commit_user_email }}' }
               changed_when: false
 
+            # 修正箇所: args / chdir の構文を修正
             - name: Stage, Commit and Push
               ansible.builtin.shell: |
                 git add "{{ remediation_dataset_relative_path }}"
                 git commit -m "{{ git_commit_message }}"
                 git push origin "HEAD:{{ git_branch }}"
-              chdir: "{{ publishing_repo_dir }}"
+              args:
+                chdir: "{{ publishing_repo_dir }}"
 
       always:
         - name: Remove temporary publishing directory
