@@ -1,0 +1,5 @@
+ip-10-1-1-182.ap-northeast-1.compute.internal:
+- RHSA-2026:18597
+ip-10-1-1-94.ap-northeast-1.compute.internal:
+- RHSA-2026:58572
+- RHSA-2026:42736
