@@ -12,12 +12,12 @@
   vars:
     # 変数をPlaybook外部（Extra Vars / Survey / group_vars）から注入可能に切り出し
     # （AAPで指定がない場合は、default() 内の値がフォールバックとして採用されます）
-    aws_region: "{{ aws_region | default('ap-northeast-1') }}"
-    ami_id: "{{ ami_id | default('ami-0d52744d6db51b0f1') }}"
-    instance_type: "{{ instance_type | default('t3.micro') }}"
-    key_name: "{{ key_name | default('patch-demo-key') }}"
-    subnet_id: "{{ subnet_id | default('subnet-xxxxxxxxxxxxxxxxx') }}"
-    security_group_id: "{{ security_group_id | default('sg-xxxxxxxxxxxxxxxxx') }}"
+    aws_region: "{{ aws_region | default('ap-northeast-1') | trim }}"
+    ami_id: "{{ ami_id | default('ami-0d52744d6db51b0f1') | trim }}"
+    instance_type: "{{ instance_type | default('t3.micro') | trim}}"
+    key_name: "{{ key_name | default('patch-demo-key') | trim}}"
+    subnet_id: "{{ subnet_id | default('subnet-xxxxxxxxxxxxxxxxx') | trim }}"
+    security_group_id: "{{ security_group_id | default('sg-xxxxxxxxxxxxxxxxx') | trim }}"
 
   tasks:
     - name: Launch EC2 Instance
@@ -26,11 +26,11 @@
         key_name: "{{ key_name }}"
         instance_type: "{{ instance_type }}"
         image_id: "{{ ami_id }}"
-        subnet_id: "{{ subnet_id }}"
-        security_groups: ["{{ security_group_id }}"]
-        network:
-          assign_public_ip: true
-        # 指定された2つのタグを設定
+        vpc_subnet_id: "{{ subnet_id }}"
+        security_group_ids:
+          - "{{ security_group_id }}"
+        network_interfaces:
+          - assign_public_ip: true
         tags:
           Name: "demo-web-portal"
           purpose: "patch_demo"
