@@ -1,0 +1,110 @@
+---
+# Extra_Vars
+# aws_region, ami_id, instance_type, key_name, subnet_id, security_group_id, aap_workflow_url, aap_bearer_token
+# ==============================================================================
+# Play 1: AWS 上に Streamlit Web Portal 用の EC2 インスタンスを作成
+# ==============================================================================
+- name: Provision EC2 Instance for Streamlit Portal
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    # 変数をPlaybook外部（Extra Vars / Survey / group_vars）から注入可能に切り出し
+    # （AAPで指定がない場合は、default() 内の値がフォールバックとして採用されます）
+    aws_region: "{{ aws_region | default('ap-northeast-1') }}"
+    ami_id: "{{ ami_id | default('ami-0d52744d6db51b0f1') }}"
+    instance_type: "{{ instance_type | default('t3.micro') }}"
+    key_name: "{{ key_name | default('patch-demo-key') }}"
+    subnet_id: "{{ subnet_id | default('subnet-xxxxxxxxxxxxxxxxx') }}"
+    security_group_id: "{{ security_group_id | default('sg-xxxxxxxxxxxxxxxxx') }}"
+
+  tasks:
+    - name: Launch EC2 Instance
+      amazon.aws.ec2_instance:
+        region: "{{ aws_region }}"
+        key_name: "{{ key_name }}"
+        instance_type: "{{ instance_type }}"
+        image_id: "{{ ami_id }}"
+        subnet_id: "{{ subnet_id }}"
+        security_groups: ["{{ security_group_id }}"]
+        network:
+          assign_public_ip: true
+        # 指定された2つのタグを設定
+        tags:
+          Name: "demo-web-portal"
+          purpose: "patch_demo"
+        wait: true
+      register: ec2_result
+
+    - name: Wait for SSH to become available
+      ansible.builtin.wait_for:
+        host: "{{ ec2_result.instances[0].public_ip_address }}"
+        port: 22
+        delay: 10
+        timeout: 300
+
+    - name: Add newly created EC2 instance to in-memory inventory
+      ansible.builtin.add_host:
+        name: "{{ ec2_result.instances[0].public_ip_address }}"
+        groups: "new_web_portal"
+        ansible_user: "ec2-user"
+
+
+# ==============================================================================
+# Play 2: 作成した EC2 上で SELinux・ディレクトリ・Podman コンテナのセットアップ
+# ==============================================================================
+- name: Setup Streamlit Container Environment on EC2
+  hosts: new_web_portal
+  become: true
+  gather_facts: true
+
+  vars:
+    aap_workflow_url: "{{ aap_workflow_url | default('https://0.0.0.0/api/controller/v2/workflow_job_templates/19/launch/') }}"
+    aap_bearer_token: "{{ aap_bearer_token }}"
+    container_image: "docker.io/rhnconsultingkemori/vulnerability-demo-portal:latest"
+
+  tasks:
+    - name: Ensure Podman and SELinux management packages are installed
+      ansible.builtin.dnf:
+        name:
+          - podman
+          - policycoreutils-python-utils
+        state: present
+
+    - name: Create data directory
+      ansible.builtin.file:
+        path: "/home/ec2-user/data"
+        state: directory
+        owner: ec2-user
+        group: ec2-user
+        mode: "0777"
+
+    - name: Set SELinux file context rule for data directory
+      ansible.builtin.command:
+        cmd: semanage fcontext -a -t container_file_t "/home/ec2-user/data(/.*)?"
+      register: semanage_result
+      changed_when: false
+      failed_when: false
+
+    - name: Apply SELinux context to data directory
+      ansible.builtin.file:
+        path: "/home/ec2-user/data"
+        setype: container_file_t
+        state: directory
+        recurse: true
+
+    - name: Run Streamlit Portal Podman Container
+      containers.podman.podman_container:
+        name: vulnerability-demo-portal
+        image: "{{ container_image }}"
+        state: started
+        recreate: true
+        ports:
+          - "8501:8501"
+        env:
+          AAP_WORKFLOW_URL: "{{ aap_workflow_url }}"
+          AAP_BEARER_TOKEN: "{{ aap_bearer_token }}"
+        volumes:
+          - "/home/ec2-user/data:/app/data:Z"
+        restart_policy: "always"
