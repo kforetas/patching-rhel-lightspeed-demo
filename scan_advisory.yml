@@ -68,7 +68,7 @@
     - name: Copy generated JSON files to Streamlit data directory
       ansible.builtin.copy:
         src: "/tmp/{{ item }}.json"
-        dest: "/home/ec2-user/patch-aap-demo/src/data/{{ item }}.json"
+        dest: "/home/ec2-user/data/{{ item }}.json"
         mode: "0644"
       loop: "{{ groups['tag_type_managed'] }}"
 
