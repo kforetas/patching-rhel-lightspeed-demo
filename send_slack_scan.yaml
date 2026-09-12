@@ -1,0 +1,30 @@
+---
+# Extra_Vars: slack_webhook_url, portal_url
+- name: Send Scan Completion to Slack
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  tasks:
+    - name: Send scan completion to Slack
+      community.general.slack:
+        webhook_url: "{{ slack_webhook_url }}"
+        color: "good"
+        blocks:
+          - type: "header"
+            text:
+              type: "plain_text"
+              text: "✅ Scan Completed"
+          - type: "section"
+            text:
+              type: "mrkdwn"
+              text: |
+                *Advisory Scan Cmpleted*
+          - type: "actions"
+            elements:
+              - type: "button"
+                text:
+                  type: "plain_text"
+                  text: "🌐 Open Vulnerability Management Portal"
+                url: "{{ portal_url }}"
+                style: "primary"
