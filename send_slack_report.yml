@@ -11,13 +11,13 @@
   gather_facts: false
 
   vars:
-    aap_job_url: "https://{{ aap_host }}/execution/execution/jobs"
+    aap_job_url: "https://{{ aap_host }}/execution/jobs"
 
   tasks:
     # 1. 固定サマリーの組み立て
     - name: Build Summary Report
       ansible.builtin.set_fact:
-        report_text: >-
+        report_text: |
           • `1. Project Sync` : :white_check_mark: Successful
           • `2. Backup` : :white_check_mark: Successful
           • `3. Apply Errata` : :white_check_mark: Successful
@@ -55,7 +55,7 @@
             - type: "section"
               text:
                 type: "mrkdwn"
-                text: "✨ *Vulnerability scan completed."
+                text: "✨ *Patch Workflow completed."
             - type: "actions"
               elements:
                 - type: "button"
