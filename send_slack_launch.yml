@@ -5,6 +5,7 @@
 #   - slack_webhook_url: "https://hooks.slack.com/..."
 #   - portal_url: "http://..."
 #   - aap_host
+#   - remediation_dataset_url
 
 - name: Send Remediation Launch & Approval Notification to Slack
   hosts: localhost
@@ -12,9 +13,7 @@
   gather_facts: false
 
   vars:
-    # 実行中の Workflow Job ID から AAP 承認画面 URL を動的生成
-    current_wf_id: "{{ tower_workflow_job_id | default(awx_workflow_job_id | default('')) }}"
-    aap_approval_url: "https://{{ aap_host }}/#/workflows/{{ current_wf_id }}"
+    aap_approval_url: "https://{{ aap_host }}/execution/administration/workflow-approvals"
 
   tasks:
     - name: Format Advisories List for Slack Message
@@ -22,7 +21,6 @@
         formatted_targets: >-
           {% for host, advisories in remediation_dataset.items() %}
           *Host:* `{{ host }}`
-          *Advisories:* {{ advisories | map('regex_replace', '^(.*)$', '`\\1`') | join(', ') }}
           {% endfor %}
 
     - name: Send Approval Request Notification to Slack
@@ -36,7 +34,7 @@
             - type: "header"
               text:
                 type: "plain_text"
-                text: "⚠️ Remediation Approval Required"
+                text: "⚠️ Patch Approval Required"
             - type: "section"
               fields:
                 - type: "mrkdwn"
@@ -48,7 +46,7 @@
               text:
                 type: "mrkdwn"
                 text: |
-                  *Target Hosts & Approved Advisories:*
+                  *Target Hosts:*
                   {{ formatted_targets }}
             - type: "actions"
               elements:
@@ -59,6 +57,13 @@
                     text: "✅ Approve on AAP"
                   url: "{{ aap_approval_url }}"
                   style: "primary"
+                
+                # datasets/remediation_dataset.ymlボタン
+                - type: "button"
+                  text:
+                    type: "plain_text"
+                    text: "🌐 View remediation_dataset"
+                  url: "{{ remediation_dataset_url }}"
                 
                 # ポータル確認ボタン
                 - type: "button"
