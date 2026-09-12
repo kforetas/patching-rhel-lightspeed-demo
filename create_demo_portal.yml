@@ -27,7 +27,7 @@
         instance_type: "{{ instance_type }}"
         image_id: "{{ ami_id }}"
         vpc_subnet_id: "{{ subnet_id }}"
-        security_group_ids:
+        security_groups:
           - "{{ security_group_id }}"
         network_interfaces:
           - assign_public_ip: true
