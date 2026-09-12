@@ -1,0 +1,70 @@
+---
+# Extra_Vars (AAP Workflow 起動時に自動引き継ぎ):
+#   - ticket_id: "INC-xxxx"
+#   - remediation_dataset: { "hostname": ["RHSA-xxx", "RHSA-yyy"] }
+#   - slack_webhook_url: "https://hooks.slack.com/..."
+#   - portal_url: "http://..."
+#   - aap_host
+
+- name: Send Remediation Launch & Approval Notification to Slack
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    # 実行中の Workflow Job ID から AAP 承認画面 URL を動的生成
+    current_wf_id: "{{ tower_workflow_job_id | default(awx_workflow_job_id | default('')) }}"
+    aap_approval_url: "https://{{ aap_host }}/#/workflows/{{ current_wf_id }}"
+
+  tasks:
+    - name: Format Advisories List for Slack Message
+      ansible.builtin.set_fact:
+        formatted_targets: >-
+          {% for host, advisories in remediation_dataset.items() %}
+          *Host:* `{{ host }}`
+          *Advisories:* {{ advisories | map('regex_replace', '^(.*)$', '`\\1`') | join(', ') }}
+          {% endfor %}
+
+    - name: Send Approval Request Notification to Slack
+      ansible.builtin.uri:
+        url: "{{ slack_webhook_url }}"
+        method: POST
+        body_format: json
+        body:
+          text: "⚠️ *[Approval Required]* Incident `{{ ticket_id | default('NO-TICKET') }}` is waiting for approval in AAP"
+          blocks:
+            - type: "header"
+              text:
+                type: "plain_text"
+                text: "⚠️ Remediation Approval Required"
+            - type: "section"
+              fields:
+                - type: "mrkdwn"
+                  text: "*Ticket ID:*\n`{{ ticket_id | default('NO-TICKET') }}`"
+                - type: "mrkdwn"
+                  text: "*Status:*\nWaiting for Operator Approval"
+            - type: "divider"
+            - type: "section"
+              text:
+                type: "mrkdwn"
+                text: |
+                  *Target Hosts & Approved Advisories:*
+                  {{ formatted_targets }}
+            - type: "actions"
+              elements:
+                # AAP の承認画面へ一発遷移するボタン
+                - type: "button"
+                  text:
+                    type: "plain_text"
+                    text: "✅ Approve on AAP"
+                  url: "{{ aap_approval_url }}"
+                  style: "primary"
+                
+                # ポータル確認ボタン
+                - type: "button"
+                  text:
+                    type: "plain_text"
+                    text: "🌐 View Vulnerability Management Portal"
+                  url: "{{ portal_url }}"
+        status_code: 200
+      register: slack_response
