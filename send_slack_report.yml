@@ -1,0 +1,73 @@
+---
+# Extra_Vars (Workflow 全体で自動引き継ぎ):
+#   - ticket_id: "INC-xxxx"
+#   - slack_webhook_url: "https://hooks.slack.com/..."
+#   - portal_url: "http://..."
+#   - aap_host
+
+- name: Send Completion Report to Slack
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    aap_job_url: "https://{{ aap_host }}/execution/execution/jobs"
+
+  tasks:
+    # 1. 固定サマリーの組み立て
+    - name: Build Summary Report
+      ansible.builtin.set_fact:
+        report_text: >-
+          • `1. Project Sync` : :white_check_mark: Successful
+          • `2. Backup` : :white_check_mark: Successful
+          • `3. Apply Errata` : :white_check_mark: Successful
+          • `4. Reboot` : :white_check_mark: Successful
+          • `5. Infra Test` : :white_check_mark: Successful
+          • `6. Application Test` : :white_check_mark: Successful
+          • `7. Rescan` : :white_check_mark: Successful
+
+    # 2. Slack へ完了通知を送信
+    - name: Send Completion Report to Slack via Webhook
+      ansible.builtin.uri:
+        url: "{{ slack_webhook_url }}"
+        method: POST
+        body_format: json
+        body:
+          text: "🎉 *[Ticket Closed]* Incident `{{ ticket_id | default('INC-DEMO') }}` has been successfully resolved!"
+          blocks:
+            - type: "header"
+              text:
+                type: "plain_text"
+                text: "🎉 Patch Workflow Completed & Ticket Closed"
+            - type: "section"
+              fields:
+                - type: "mrkdwn"
+                  text: "*Ticket ID:*\n`{{ ticket_id | default('INC-DEMO') }}`"
+                - type: "mrkdwn"
+                  text: "*Status:*\n*Closed / Resolved*"
+            - type: "divider"
+            - type: "section"
+              text:
+                type: "mrkdwn"
+                text: |
+                  *Workflow Step Execution Results:*
+                  {{ report_text }}
+            - type: "section"
+              text:
+                type: "mrkdwn"
+                text: "✨ *Vulnerability scan completed."
+            - type: "actions"
+              elements:
+                - type: "button"
+                  text:
+                    type: "plain_text"
+                    text: "🌐 Verify on Vulnerability Management Portal"
+                  url: "{{ portal_url }}"
+                  style: "primary"
+                - type: "button"
+                  text:
+                    type: "plain_text"
+                    text: "✅ Execution Logs on AAP"
+                  url: "{{ aap_job_url }}"
+        status_code: 200
+      register: slack_response
