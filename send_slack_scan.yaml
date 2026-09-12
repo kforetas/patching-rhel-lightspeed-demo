@@ -6,25 +6,39 @@
   gather_facts: false
 
   tasks:
-    - name: Send scan completion to Slack
-      community.general.slack:
-        webhook_url: "{{ slack_webhook_url }}"
-        color: "good"
-        blocks:
-          - type: "header"
-            text:
-              type: "plain_text"
-              text: "✅ Scan Completed"
-          - type: "section"
-            text:
-              type: "mrkdwn"
-              text: |
-                *Advisory Scan Cmpleted*
-          - type: "actions"
-            elements:
-              - type: "button"
-                text:
-                  type: "plain_text"
-                  text: "🌐 Open Vulnerability Management Portal"
-                url: "{{ portal_url }}"
-                style: "primary"
+    - name: Validate Webhook URL
+      ansible.builtin.assert:
+        that:
+          - slack_webhook_url is defined
+          - slack_webhook_url | length > 0
+        fail_msg: "slack_webhook_url must be defined."
+
+    - name: Send scan completion to Slack via Webhook
+      ansible.builtin.uri:
+        url: "{{ slack_webhook_url }}"
+        method: POST
+        body_format: json
+        body:
+          text: "✅ *[Scan Completed]* Advisory Scan Completed"
+          blocks:
+            - type: "header"
+              text:
+                type: "plain_text"
+                text: "✅ Scan Completed"
+            - type: "section"
+              text:
+                type: "mrkdwn"
+                text: |
+                  *Advisory Scan Completed*
+                  Please check the latest security advisories and scan results on the portal.
+            - type: "actions"
+              elements:
+                - type: "button"
+                  text:
+                    type: "plain_text"
+                    text: "🌐 Open Vulnerability Management Portal"
+                  url: "{{ portal_url }}"
+                  style: "primary"
+        status_code: 200
+      register: slack_response
+      
