@@ -94,17 +94,25 @@
         state: directory
         recurse: true
 
+    # 既存の同名コンテナがあれば安全に停止・削除
+    - name: Remove existing Podman container if present
+      ansible.builtin.command:
+        cmd: podman rm -f vulnerability-demo-portal
+      register: podman_rm_result
+      changed_when: false
+      failed_when: false
+
+    # podman run コマンドでコンテナを起動
     - name: Run Streamlit Portal Podman Container
-      containers.podman.podman_container:
-        name: vulnerability-demo-portal
-        image: "{{ container_image }}"
-        state: started
-        recreate: true
-        ports:
-          - "8501:8501"
-        env:
-          AAP_WORKFLOW_URL: "{{ aap_workflow_url }}"
-          AAP_BEARER_TOKEN: "{{ aap_bearer_token }}"
-        volumes:
-          - "/home/ec2-user/data:/app/data:Z"
-        restart_policy: "always"
+      ansible.builtin.command:
+        cmd: >-
+          podman run -d
+          --name vulnerability-demo-portal
+          -p 8501:8501
+          -e AAP_WORKFLOW_URL="{{ aap_workflow_url }}"
+          -e AAP_BEARER_TOKEN="{{ aap_bearer_token }}"
+          -v /home/ec2-user/data:/app/data:Z
+          --restart always
+          {{ container_image }}
+      register: podman_run_result
+      changed_when: podman_run_result.rc == 0
