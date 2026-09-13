@@ -13,8 +13,8 @@ The assumed environment can be set up on AWS EC2 easily by using playbooks and r
 #### Environment
 |Name     |Description|
 |:--------|:----------|
-|`create_jobtemplate.yml`|パッチ適用対象のVMを作成するPlaybook|
-|`create_workflow.yml`|パッチ適用対象のVMを作成するPlaybook|
+|`create_jobtemplate.yml`|JobTemplateを作成するPlaybook|
+|`create_workflow.yml`|Workflowを作成するPlaybook|
 |`create_managed_vms.yml`|パッチ適用対象のVMを作成するPlaybook|
 |`delete_managed_vms.yml`|パッチ適用対象のVMを削除するPlaybook|
 |`create_demo_portal.yml`|デモ用ポータル画面をVM構築〜アプリ設定まで実施するPlaybook|
