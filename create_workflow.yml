@@ -1,516 +1,248 @@
-# Create Job_Template
+---
+# Create Workflow
+# ----------------------------------------------
 # Extra_vars: 
 # ----------------------------------------------
-# aap_controller_url: ex) https://ansible-1.ckp7b.sandbox3023.opentlc.com
-# ansible_user: ex) admin
-# ansible_pw: Password
-# inventory_name: demo-itst-inventory
-# label_name: demo
+# - project_name: Patch_Lightspeed_Demo
+# - inventory_source: Patch_Demo_Source
+# - label_environment: environment
+# - label_scan: scan
+# - label_patch: patch
+# - slack_webhook_url: 
+# - portal_url: 
+# - aap_host: xxx.xxx.xxx.xxx
+# - remediation_dataset_url: https://github.com/kforetas/patching-rhel-lightspeed-demo/blob/main/datasets/remediation_dataset.yml
 # ----------------------------------------------
 - name: Create a Workflow 
   hosts: localhost
-
-  environment:
-    CONTROLLER_HOST: "{{ aap_controller_url }}"
-    CONTROLLER_USERNAME: "{{ ansible_user }}"
-    CONTROLLER_PASSWORD: "{{ ansible_pw }}"
-    CONTROLLER_VERIFY_SSL: false
-
   tasks:
-    # L1_wf00_create_demo_report
-    - name: L1_wf00_create_demo_report
+    # --------------------------------------------------------------------------
+    # 1. Delete and Create VMs WF
+    # --------------------------------------------------------------------------
+    - name: Create Workflow - Delete and Create VMs WF
       ansible.controller.workflow_job_template:
-        name: L1_wf00_create_demo_report
-        organization: Default
-        inventory: "{{ inventory_name }}"
+        name: "Delete and Create VMs WF"
         state: present
+        organization: "{{ organization_name }}"
         labels:
-          - "{{ label_name }}"
+          - "{{ label_environment }}"
+
+    - name: Create Workflow Node - Delete Managed VMs
+      ansible.controller.workflow_job_template_node:
+        identifier: node_delete_vms
+        workflow_job_template: "Delete and Create VMs WF"
+        unified_job_template: "Delete Managed VMs"
+        state: present
+
+    - name: Create Workflow Node - Create Managed VMs
+      ansible.controller.workflow_job_template_node:
+        identifier: node_create_vms
+        workflow_job_template: "Delete and Create VMs WF"
+        unified_job_template: "Create Managed VMs"
+        success_nodes:
+          - node_delete_vms
+        state: present
+
+    # --------------------------------------------------------------------------
+    # 2. Scan WF
+    # --------------------------------------------------------------------------
+    - name: Create Workflow - Scan WF
+      ansible.controller.workflow_job_template:
+        name: "Scan WF"
+        state: present
+        organization: "{{ organization_name }}"
+        labels:
+          - "{{ label_scan }}"
         extra_vars:
-          namespace_name: demo-report
-          create_table_image: create_table
-          insert_table_image: insert_table
+          slack_webhook_url: "{{ slack_webhook_url }}"
+          portal_url: "{{ portal_url }}"
 
-    - name: L2_rp01_create_namespace
+    - name: Create Workflow Node - Scan Advisory
       ansible.controller.workflow_job_template_node:
-        identifier: L2_rp01_create_namespace
-        workflow_job_template: L1_wf00_create_demo_report
-        unified_job_template: L2_rp01_create_namespace
-        organization: Default
-
-    - name: L2_rp02_create_secret
-      ansible.controller.workflow_job_template_node:
-        identifier: L2_rp02_create_secret
-        workflow_job_template: L1_wf00_create_demo_report
-        unified_job_template: L2_rp02_create_secret
-        organization: Default
-
-    - name: L2_rp03_create_database
-      ansible.controller.workflow_job_template_node:
-        identifier: L2_rp03_create_database
-        workflow_job_template: L1_wf00_create_demo_report
-        unified_job_template: L2_rp03_create_database
-        organization: Default
-
-    - name: L2_rp04_create_table
-      ansible.controller.workflow_job_template_node:
-        identifier: L2_rp04_create_table
-        workflow_job_template: L1_wf00_create_demo_report
-        unified_job_template: L2_rp04_create_table
-        organization: Default
-
-    - name: L2_rp05_insert_table
-      ansible.controller.workflow_job_template_node:
-        identifier: L2_rp05_insert_table
-        workflow_job_template: L1_wf00_create_demo_report
-        unified_job_template: L2_rp05_insert_table
-        organization: Default
-
-    - name: L2_rp06_deploy_report-viewer
-      ansible.controller.workflow_job_template_node:
-        identifier: L2_rp06_deploy_report-viewer
-        workflow_job_template: L1_wf00_create_demo_report
-        unified_job_template: L2_rp06_deploy_report-viewer
-        organization: Default
-
-    - name: L2_rp07_deploy_result-manager
-      ansible.controller.workflow_job_template_node:
-        identifier: L2_rp07_deploy_result-manager
-        workflow_job_template: L1_wf00_create_demo_report
-        unified_job_template: L2_rp07_deploy_result-manager
-        organization: Default
-
-    - name: L2_rp08_deploy_start-scenario
-      ansible.controller.workflow_job_template_node:
-        identifier: L2_rp08_deploy_start-scenario
-        workflow_job_template: L1_wf00_create_demo_report
-        unified_job_template: L2_rp08_deploy_start-scenario
-        organization: Default
-
-    - name: Link L2_rp01_create_namespace
-      ansible.controller.workflow_job_template_node:
-        identifier: L2_rp01_create_namespace
-        workflow_job_template: L1_wf00_create_demo_report
-        organization: Default
-        always_nodes:
-          - L2_rp02_create_secret
-
-    - name: Link L2_rp02_create_secret
-      ansible.controller.workflow_job_template_node:
-        identifier: L2_rp02_create_secret
-        workflow_job_template: L1_wf00_create_demo_report
-        organization: Default
-        always_nodes:
-          - L2_rp03_create_database
-
-    - name: Link L2_rp03_create_database
-      ansible.controller.workflow_job_template_node:
-        identifier: L2_rp03_create_database
-        workflow_job_template: L1_wf00_create_demo_report
-        organization: Default
-        always_nodes:
-          - L2_rp04_create_table
-
-    - name: Link L2_rp04_create_table
-      ansible.controller.workflow_job_template_node:
-        identifier: L2_rp04_create_table
-        workflow_job_template: L1_wf00_create_demo_report
-        organization: Default
-        always_nodes:
-          - L2_rp05_insert_table
-
-    - name: Link L2_rp05_insert_table
-      ansible.controller.workflow_job_template_node:
-        identifier: L2_rp05_insert_table
-        workflow_job_template: L1_wf00_create_demo_report
-        organization: Default
-        always_nodes:
-          - L2_rp06_deploy_report-viewer
-
-    - name: Link L2_rp06_deploy_report-viewer
-      ansible.controller.workflow_job_template_node:
-        identifier: L2_rp06_deploy_report-viewer
-        workflow_job_template: L1_wf00_create_demo_report
-        organization: Default
-        always_nodes:
-          - L2_rp07_deploy_result-manager
-
-    - name: Link L2_rp07_deploy_result-manager
-      ansible.controller.workflow_job_template_node:
-        identifier: L2_rp07_deploy_result-manager
-        workflow_job_template: L1_wf00_create_demo_report
-        organization: Default
-        always_nodes:
-          - L2_rp08_deploy_start-scenario
-
-    # L1_wf01_init
-    - name: L1_wf01_init
-      ansible.controller.workflow_job_template:
-        name: L1_wf01_init
-        organization: Default
-        inventory: "{{ inventory_name }}"
+        identifier: node_scan_advisory
+        workflow_job_template: "Scan WF"
+        unified_job_template: "Scan Advisory"
         state: present
-        labels:
-          - "{{ label_name }}"
-        survey_enabled: true
-        survey_spec:
-          name: Simple
-          description: Description of the simple survey
-          spec:
-            - type: text
-              question_name: test_id
-              variable: test_id
-              required: true
-    
-    - name: L2_ut01_init_job
-      ansible.controller.workflow_job_template_node:
-        identifier: L2_ut01_init_job
-        workflow_job_template: L1_wf01_init
-        unified_job_template: L2_ut01_init_job
-        organization: Default
 
-    # L1_wf02_environment
-    - name: L1_wf02_environment
-      ansible.controller.workflow_job_template:
-        name: L1_wf02_environment
-        organization: Default
-        inventory: "{{ inventory_name }}"
+    - name: Create Workflow Node - Send Slack Scan
+      ansible.controller.workflow_job_template_node:
+        identifier: node_send_slack_scan
+        workflow_job_template: "Scan WF"
+        unified_job_template: "Send Slack Scan"
+        success_nodes:
+          - node_scan_advisory
         state: present
-        labels:
-          - "{{ label_name }}"
-        survey_enabled: true
-        survey_spec:
-          name: Simple
-          description: Description of the simple survey
-          spec:
-            - type: text
-              question_name: test_id
-              variable: test_id
-              required: true
-            - type: text
-              question_name: test_result_seq
-              variable: test_result_seq
-              required: true
-            - type: integer
-              question_name: seq
-              variable: seq
-              required: true
-            - type: text
-              question_name: name
-              variable: name
-              required: true
-    
-    - name: L2_ev01_gitclone_setparam
-      ansible.controller.workflow_job_template_node:
-        identifier: L2_ev01_gitclone_setparam
-        workflow_job_template: L1_wf02_environment
-        unified_job_template: L2_ev01_gitclone_setparam
-        organization: Default
-    
-    - name: L2_ev02_create_namespace
-      ansible.controller.workflow_job_template_node:
-        identifier: L2_ev02_create_namespace
-        workflow_job_template: L1_wf02_environment
-        unified_job_template: L2_ev02_create_namespace
-        organization: Default
 
-    - name: L2_ev03_create_secret
-      ansible.controller.workflow_job_template_node:
-        identifier: L2_ev03_create_secret
-        workflow_job_template: L1_wf02_environment
-        unified_job_template: L2_ev03_create_secret
-        organization: Default
-
-    - name: L2_ev04_create_database
-      ansible.controller.workflow_job_template_node:
-        identifier: L2_ev04_create_database
-        workflow_job_template: L1_wf02_environment
-        unified_job_template: L2_ev04_create_database
-        organization: Default
-
-    - name: L2_ev05_create_table
-      ansible.controller.workflow_job_template_node:
-        identifier: L2_ev05_create_table
-        workflow_job_template: L1_wf02_environment
-        unified_job_template: L2_ev05_create_table
-        organization: Default
-
-    - name: L2_ev06_insert_table
-      ansible.controller.workflow_job_template_node:
-        identifier: L2_ev06_insert_table
-        workflow_job_template: L1_wf02_environment
-        unified_job_template: L2_ev06_insert_table
-        organization: Default
-
-    - name: L2_ev07_create_pvc
-      ansible.controller.workflow_job_template_node:
-        identifier: L2_ev07_create_pvc
-        workflow_job_template: L1_wf02_environment
-        unified_job_template: L2_ev07_create_pvc
-        organization: Default
-
-    - name: L2_ev08_run_data_setup_app
-      ansible.controller.workflow_job_template_node:
-        identifier: L2_ev08_run_data_setup_app
-        workflow_job_template: L1_wf02_environment
-        unified_job_template: L2_ev08_run_data_setup_app
-        organization: Default
-
-    - name: L2_ev10_create_kafka
-      ansible.controller.workflow_job_template_node:
-        identifier: L2_ev10_create_kafka
-        workflow_job_template: L1_wf02_environment
-        unified_job_template: L2_ev10_create_kafka
-        organization: Default
-
-    - name: L2_ev09_end_provisioning
-      ansible.controller.workflow_job_template_node:
-        identifier: L2_ev09_end_provisioning
-        workflow_job_template: L1_wf02_environment
-        unified_job_template: L2_ev09_end_provisioning
-        organization: Default
-
-    - name: Link L2_ev01_gitclone_setparam
-      ansible.controller.workflow_job_template_node:
-        identifier: L2_ev01_gitclone_setparam
-        workflow_job_template: L1_wf02_environment
-        organization: Default
-        always_nodes:
-          - L2_ev02_create_namespace
-
-    - name: Link L2_ev02_create_namespace
-      ansible.controller.workflow_job_template_node:
-        identifier: L2_ev02_create_namespace
-        workflow_job_template: L1_wf02_environment
-        organization: Default
-        always_nodes:
-          - L2_ev03_create_secret
-
-    - name: Link L2_ev03_create_secret
-      ansible.controller.workflow_job_template_node:
-        identifier: L2_ev03_create_secret
-        workflow_job_template: L1_wf02_environment
-        organization: Default
-        always_nodes:
-          - L2_ev04_create_database
-
-    - name: Link L2_ev04_create_database
-      ansible.controller.workflow_job_template_node:
-        identifier: L2_ev04_create_database
-        workflow_job_template: L1_wf02_environment
-        organization: Default
-        always_nodes:
-          - L2_ev05_create_table
-
-    - name: Link L2_ev05_create_table
-      ansible.controller.workflow_job_template_node:
-        identifier: L2_ev05_create_table
-        workflow_job_template: L1_wf02_environment
-        organization: Default
-        always_nodes:
-          - L2_ev06_insert_table
-
-    - name: Link L2_ev06_insert_table
-      ansible.controller.workflow_job_template_node:
-        identifier: L2_ev06_insert_table
-        workflow_job_template: L1_wf02_environment
-        organization: Default
-        always_nodes:
-          - L2_ev07_create_pvc
-
-    - name: Link L2_ev07_create_pvc
-      ansible.controller.workflow_job_template_node:
-        identifier: L2_ev07_create_pvc
-        workflow_job_template: L1_wf02_environment
-        organization: Default
-        always_nodes:
-          - L2_ev08_run_data_setup_app
-
-    - name: Link L2_ev08_run_data_setup_app
-      ansible.controller.workflow_job_template_node:
-        identifier: L2_ev08_run_data_setup_app
-        workflow_job_template: L1_wf02_environment
-        organization: Default
-        always_nodes:
-          - L2_ev10_create_kafka
-
-    - name: Link L2_ev10_create_kafka
-      ansible.controller.workflow_job_template_node:
-        identifier: L2_ev10_create_kafka
-        workflow_job_template: L1_wf02_environment
-        organization: Default
-        always_nodes:
-          - L2_ev09_end_provisioning
-
-    # L1_wf03_test_scenario
-    - name: L1_wf03_test_scenario
+    # --------------------------------------------------------------------------
+    # 3. Advisory List Publisher WF
+    # --------------------------------------------------------------------------
+    - name: Create Workflow - Advisory List Publisher WF
       ansible.controller.workflow_job_template:
-        name: L1_wf03_test_scenario
-        organization: Default
-        inventory: "{{ inventory_name }}"
+        name: "Advisory List Publisher WF"
         state: present
+        organization: "{{ organization_name }}"
         labels:
-          - "{{ label_name }}"
-        survey_enabled: true
-        survey_spec:
-          name: Simple
-          description: Description of the simple survey
-          spec:
-            - type: text
-              question_name: test_id
-              variable: test_id
-              required: true
-            - type: text
-              question_name: test_result_seq
-              variable: test_result_seq
-              required: true
-            - type: integer
-              question_name: seq
-              variable: seq
-              required: true
-            - type: text
-              question_name: name
-              variable: name
-              required: true
-    
-    - name: L2_st01_start_scenario
-      ansible.controller.workflow_job_template_node:
-        identifier: L2_st01_start_scenario
-        workflow_job_template: L1_wf03_test_scenario
-        unified_job_template: L2_st01_start_scenario
-        organization: Default
-    
-    - name: L2_st02_run_online_app
-      ansible.controller.workflow_job_template_node:
-        identifier: L2_st02_run_online_app
-        workflow_job_template: L1_wf03_test_scenario
-        unified_job_template: L2_st02_run_online_app
-        organization: Default
+          - "{{ label_patch }}"
+        ask_variables_on_launch: true
 
-    - name: L2_st03_data_entry
+    - name: Create Workflow Node - Publish_Advisory
       ansible.controller.workflow_job_template_node:
-        identifier: L2_st03_data_entry
-        workflow_job_template: L1_wf03_test_scenario
-        unified_job_template: L2_st03_data_entry
-        organization: Default
+        identifier: node_publish_advisory
+        workflow_job_template: "Advisory List Publisher WF"
+        unified_job_template: "Publish_Advisory"
+        state: present
 
-    - name: L2_st04_run_batch_app
+    - name: Create Workflow Node - Sync Project
       ansible.controller.workflow_job_template_node:
-        identifier: L2_st04_run_batch_app
-        workflow_job_template: L1_wf03_test_scenario
-        unified_job_template: L2_st04_run_batch_app
-        organization: Default
+        identifier: node_sync_project
+        workflow_job_template: "Advisory List Publisher WF"
+        unified_job_template: "{{ project_name }}"
+        success_nodes:
+          - node_publish_advisory
+        state: present
 
-    - name: L2_st05_assert_result
-      ansible.controller.workflow_job_template_node:
-        identifier: L2_st05_assert_result
-        workflow_job_template: L1_wf03_test_scenario
-        unified_job_template: L2_st05_assert_result
-        organization: Default
-
-    - name: L2_st06_stop_online_app
-      ansible.controller.workflow_job_template_node:
-        identifier: L2_st06_stop_online_app
-        workflow_job_template: L1_wf03_test_scenario
-        unified_job_template: L2_st06_stop_online_app
-        organization: Default
-
-    - name: L2_st07_delete_job_all
-      ansible.controller.workflow_job_template_node:
-        identifier: L2_st07_delete_job_all
-        workflow_job_template: L1_wf03_test_scenario
-        unified_job_template: L2_st07_delete_job_all
-        organization: Default
-
-    - name: L2_st10_end_scenario
-      ansible.controller.workflow_job_template_node:
-        identifier: L2_st10_end_scenario
-        workflow_job_template: L1_wf03_test_scenario
-        unified_job_template: L2_st10_end_scenario
-        organization: Default
-    
-    - name: Link L2_st01_start_scenario
-      ansible.controller.workflow_job_template_node:
-        identifier: L2_st01_start_scenario
-        workflow_job_template: L1_wf03_test_scenario
-        organization: Default
-        always_nodes:
-          - L2_st02_run_online_app
-    
-    - name: Link L2_st02_run_online_app
-      ansible.controller.workflow_job_template_node:
-        identifier: L2_st02_run_online_app
-        workflow_job_template: L1_wf03_test_scenario
-        organization: Default
-        always_nodes:
-          - L2_st03_data_entry
-
-    - name: Link L2_st03_data_entry
-      ansible.controller.workflow_job_template_node:
-        identifier: L2_st03_data_entry
-        workflow_job_template: L1_wf03_test_scenario
-        organization: Default
-        always_nodes:
-          - L2_st04_run_batch_app
-
-    - name: Link L2_st04_run_batch_app
-      ansible.controller.workflow_job_template_node:
-        identifier: L2_st04_run_batch_app
-        workflow_job_template: L1_wf03_test_scenario
-        organization: Default
-        always_nodes:
-          - L2_st05_assert_result
-
-    - name: Link L2_st05_assert_result
-      ansible.controller.workflow_job_template_node:
-        identifier: L2_st05_assert_result
-        workflow_job_template: L1_wf03_test_scenario
-        organization: Default
-        always_nodes:
-          - L2_st06_stop_online_app
-
-    - name: Link L2_st06_stop_online_app
-      ansible.controller.workflow_job_template_node:
-        identifier: L2_st06_stop_online_app
-        workflow_job_template: L1_wf03_test_scenario
-        organization: Default
-        always_nodes:
-          - L2_st07_delete_job_all
-
-    - name: Link L2_st07_delete_job_all
-      ansible.controller.workflow_job_template_node:
-        identifier: L2_st07_delete_job_all
-        workflow_job_template: L1_wf03_test_scenario
-        organization: Default
-        always_nodes:
-          - L2_st10_end_scenario
-
-    # L1_wf04_closing
-    - name: L1_wf04_closing
+    # --------------------------------------------------------------------------
+    # 4. Apply Patch WF
+    # --------------------------------------------------------------------------
+    - name: Create Workflow - Apply Patch WF
       ansible.controller.workflow_job_template:
-        name: L1_wf04_closing
-        organization: Default
-        inventory: "{{ inventory_name }}"
+        name: "Apply Patch WF"
         state: present
+        organization: "{{ organization_name }}"
         labels:
-          - "{{ label_name }}"
-        survey_enabled: true
-        survey_spec:
-          name: Simple
-          description: Description of the simple survey
-          spec:
-            - type: text
-              question_name: test_id
-              variable: test_id
-              required: true
-            - type: text
-              question_name: test_result_seq
-              variable: test_result_seq
-              required: true
-    
-    - name: L2_ut02_closing_job
+          - "{{ label_patch }}"
+        ask_variables_on_launch: true
+
+    - name: Create Workflow Node - Sync AWS Inventory Source
       ansible.controller.workflow_job_template_node:
-        identifier: L2_ut02_closing_job
-        workflow_job_template: L1_wf04_closing
-        unified_job_template: L2_ut02_closing_job
-        organization: Default
+        identifier: node_sync_inventory
+        workflow_job_template: "Apply Patch WF"
+        inventory_source: "{{ inventory_source }}"
+        state: present
+
+    - name: Create Workflow Node - Backup VMs
+      ansible.controller.workflow_job_template_node:
+        identifier: node_backup_vms
+        workflow_job_template: "Apply Patch WF"
+        unified_job_template: "Backup VMs"
+        success_nodes:
+          - node_sync_inventory
+        state: present
+
+    - name: Create Workflow Node - Apply Errata to VMs
+      ansible.controller.workflow_job_template_node:
+        identifier: node_apply_errata_to_vms
+        workflow_job_template: "Apply Patch WF"
+        unified_job_template: "Apply Errata to VMs"
+        success_nodes:
+          - node_backup_vms
+        state: present
+
+    - name: Create Workflow Node - Reboot VMs
+      ansible.controller.workflow_job_template_node:
+        identifier: node_reboot_vms
+        workflow_job_template: "Apply Patch WF"
+        unified_job_template: "Reboot VMs"
+        success_nodes:
+          - node_apply_errata_to_vms
+        state: present
+
+    - name: Create Workflow Node - Sync AWS Inventory Source2
+      ansible.controller.workflow_job_template_node:
+        identifier: node_sync_inventory2
+        workflow_job_template: "Apply Patch WF"
+        inventory_source: "{{ inventory_source }}"
+        success_nodes:
+          - node_reboot_vms
+        state: present
+
+    - name: Create Workflow Node - Test VMs
+      ansible.controller.workflow_job_template_node:
+        identifier: node_test_vms
+        workflow_job_template: "Apply Patch WF"
+        unified_job_template: "Test VMs"
+        success_nodes:
+          - node_sync_inventory2
+        state: present
+
+    - name: Create Workflow Node - Test App
+      ansible.controller.workflow_job_template_node:
+        identifier: node_test_app
+        workflow_job_template: "Apply Patch WF"
+        unified_job_template: "Test App"
+        success_nodes:
+          - node_test_vms
+        state: present
+
+    - name: Create Workflow Node - Scan Advisory (Apply Patch WF)
+      ansible.controller.workflow_job_template_node:
+        # 重複回避のため identifier 名をユニークに変更
+        identifier: node_apply_patch_scan_advisory
+        workflow_job_template: "Apply Patch WF"
+        unified_job_template: "Scan Advisory"
+        success_nodes:
+          - node_test_app
+        state: present
+
+    # --------------------------------------------------------------------------
+    # 5. Periodic Security Patching WF (全自動マスターワークフロー)
+    # --------------------------------------------------------------------------
+    - name: Create Workflow - Periodic Security Patching WF
+      ansible.controller.workflow_job_template:
+        name: "Periodic Security Patching WF"
+        state: present
+        organization: "{{ organization_name }}"
+        labels:
+          - "{{ label_patch }}"
+        extra_vars:
+          slack_webhook_url: "{{ slack_webhook_url }}"
+          portal_url: "{{ portal_url }}"
+          aap_host: "{{ aap_host }}"
+          remediation_dataset_url: "{{ remediation_dataset_url }}"
+        ask_variables_on_launch: true
+
+    - name: Create Workflow Node - Advisory List Publisher WF
+      ansible.controller.workflow_job_template_node:
+        identifier: node_advisory_list_wf
+        workflow_job_template: "Periodic Security Patching WF"
+        unified_job_template: "Advisory List Publisher WF"
+        state: present
+
+    - name: Create Workflow Node - Send Slack Launch
+      ansible.controller.workflow_job_template_node:
+        identifier: node_send_slack_launch
+        workflow_job_template: "Periodic Security Patching WF"
+        unified_job_template: "Send Slack Launch"
+        success_nodes:
+          - node_advisory_list_wf
+        state: present
+
+    - name: Create Workflow Node - Approval for Patching
+      ansible.controller.workflow_job_template_node:
+        identifier: node_patch_approval
+        workflow_job_template: "Periodic Security Patching WF"
+        approval_node:
+          name: "Approval for Patching"
+          description: "パッチ適用ジョブの実行を承認しますか？"
+          timeout: 0
+        success_nodes:
+          - node_send_slack_launch
+        state: present
+
+    - name: Create Workflow Node - Apply Patch WF
+      ansible.controller.workflow_job_template_node:
+        identifier: node_apply_patch_wf
+        workflow_job_template: "Periodic Security Patching WF"
+        unified_job_template: "Apply Patch WF"
+        success_nodes:
+          - node_patch_approval
+        state: present
+
+    - name: Create Workflow Node - Send Slack Report
+      ansible.controller.workflow_job_template_node:
+        identifier: node_send_slack_report
+        workflow_job_template: "Periodic Security Patching WF"
+        unified_job_template: "Send Slack Report"
+        success_nodes:
+          - node_apply_patch_wf
+        state: present

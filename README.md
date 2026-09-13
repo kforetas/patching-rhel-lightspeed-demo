@@ -183,115 +183,12 @@ Please refer to [Ansible Doc](https://docs.redhat.com/en/documentation/red_hat_a
 5. Note `API token`.
 
 ### Create job templates
-Each job template is equivalent to a playbook in this repository. Repeat these steps for each template/playbook that you want to use and change the variables specific to the individual playbook. Please refer to [Ansible Doc](https://docs.redhat.com/en/documentation/red_hat_ansible_automation_platform/2.7/develop-proc_controller_create_job_template) for more details.
-
 1. Click `Templates` in the left menu.
 2. Click `Create template` button and select `Create job template`.
 3. Follow the next steps respectively.
 4. Click `Create job template` button
 
-#### Create Advisory List
-- Name: `Create Advisory List`
-- Job Type: `Run`
-- Inventory: `Patch_Demo`
-- Project:  `Patch_Lightspeed_Demo`
-- Playbook: `create_advisory_list.yml`
-- Credentials: `Lightspeed_cred`
-
-#### Publish Dataset
-- Name: `Publish Dataset`
-- Job Type: `Run`
-- Inventory: `Patch_Demo`
-- Project:  `Patch_Lightspeed_Demo`
-- Playbook: `publish_dataset.yml`
-- Credentials: `Git_SSH_key`
-- Variables:
-  ```
-  ---
-  git_repository_url: git@github.com:yourname/your-git-repository.git
-  ```
-
-#### Backup VMs
-- Name: `Backup VMs`
-- Job Type: `Run`
-- Inventory: `Patch_Demo`
-- Project:  `Patch_Lightspeed_Demo`
-- Playbook: `backup_vm.yml`
-- Credentials: `aws_cred`
-
-#### Apply Errata to VMs
-- Name: `Apply Errata to VMs`
-- Job Type: `Run`
-- Inventory: `Patch_Demo`
-- Project:  `Patch_Lightspeed_Demo`
-- Playbook: `apply_errata.yml`
-- Credentials: `aws_key`
-
-#### Reboot VMs
-- Name: `Reboot VMs`
-- Job Type: `Run`
-- Inventory: `Patch_Demo`
-- Project:  `Patch_Lightspeed_Demo`
-- Playbook: `reboot_vm.yml`
-- Credentials: `aws_key`
-
-#### Test VMs
-- Name: `Test VMs`
-- Job Type: `Run`
-- Inventory: `Patch_Demo`
-- Project:  `Patch_Lightspeed_Demo`
-- Playbook: `test_vm.yml`
-- Credentials: `aws_key`
-
-#### Test App
-- Name: `Test App`
-- Job Type: `Run`
-- Inventory: `Patch_Demo`
-- Project:  `Patch_Lightspeed_Demo`
-- Playbook: `test_app.yml`
-- Credentials: `aws_cred`
-
-#### Refresh Lightspeed
-- Name: `Refresh Lightspeed`
-- Job Type: `Run`
-- Inventory: `Patch_Demo`
-- Project:  `Patch_Lightspeed_Demo`
-- Playbook: `refresh_lightspeed.yml`
-- Credentials: `aws_key`
-
-
-### Create workflow templates
-Above job templates are acutually configured as separate workflow templates. Follow the next steps for workflow templates. Please refer to [Ansible Doc](https://docs.redhat.com/en/documentation/red_hat_ansible_automation_platform/2.7/develop-proc_controller_create_workflow_template) for more details.
-
-#### Advisory List Publisher WF
-
-1. Click `Templates` in the left menu.
-2. Click `Create template` button and select `Create workflow job template`.
-3. Click `Create workflow job template` button.
-4. Click `Add step` in the launched Visualizer.
-5. Configure the workflow template as follows:
-![](./images/advisory_list_publisher_WF.png)
-
-1. Click `Save` button.
-
-#### Apply Patch WF
-
-1. Click `Templates` in the left menu.
-2. Click `Create template` button and select `Create workflow job template`.
-3. Click `Create workflow job template` button.
-4. Click `Add step` in the launched Visualizer.
-5. Configure the workflow template as follows:
-![](./images/apply_patch_WF.png)
-
-6. Click `Save` button.
-
-#### Periodic Security Patching WF
-
-1. Click `Templates` in the left menu.
-2. Click `Create template` button and select `Create workflow job template`.
-3. Click `Create workflow job template` button.
-4. Click `Add step` in the launched Visualizer.
-5. Configure the workflow template as follows:
-![](./images/periodic_security_patching_WF.png)
-
-6. Click `Save` button.
+- Create JobTemplate: create_jobtemplate.yml
+Playbook内に記載している変数をExtra_varsに設定して実行するとJobTemplateが自動生成されます。
+- Create Workflow: create_workflow.yml
+Playbook内に記載している変数をExtra_varsに設定して実行するとWorkflowが自動生成されます。
