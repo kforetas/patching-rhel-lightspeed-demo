@@ -18,6 +18,7 @@
       - wp_blog_public is defined
     fail_msg: "Required variables not set"
 
+# 1. RHSM への登録（dnf 用に必須）
 - name: Register to Red Hat Subscription Management
   ansible.builtin.command:
     cmd: "subscription-manager register --username={{ rhsm_username }} --password={{ rhsm_passwd }} --force"
@@ -47,13 +48,7 @@
     name:
       - mysql
       - mysql-server
-      - pip
       - wget
-    state: present
-
-- name: Install PyMySQL python package
-  ansible.builtin.pip:
-    name: PyMySQL
     state: present
 
 - name: Install httpd package
@@ -80,63 +75,45 @@
       - php-devel
     state: present
 
-# - name: Update all packages
-#   ansible.builtin.dnf:
-#     name: "*"
-#     state: latest
-#     update_only: true
-
-- name: Install cryptography python package
-  ansible.builtin.pip:
-    name: cryptography
-    state: present
-
 - name: Enable service mysql, and start
   ansible.builtin.service:
     name: mysqld
     enabled: true
     state: started
 
+# ------------------------------------------------------------------------------
+# MySQL 設定（community.mysql モジュールの代わりに CLI を使用）
+# ------------------------------------------------------------------------------
 - name: Set mysql root password
-  community.mysql.mysql_user:
-    check_implicit_admin: true
-    name: root
-    password: "{{ mysql_root_passwd }}"
-    state: present
+  ansible.builtin.shell: >
+    mysqladmin -u root password "{{ mysql_root_passwd }}" ||
+    mysql -u root -p"{{ mysql_root_passwd }}" -e "SELECT 1;"
+  register: mysql_root_result
+  changed_when: false
+  failed_when: false
 
-- name: Create Wordpress database
-  community.mysql.mysql_db:
-    login_user: root
-    login_password: "{{ mysql_root_passwd }}"
-    name: "{{ mysql_wp_database }}"
-    state: present
+- name: Create Wordpress database and user
+  ansible.builtin.shell: |
+    mysql -u root -p"{{ mysql_root_passwd }}" -e "
+      CREATE DATABASE IF NOT EXISTS {{ mysql_wp_database }};
+      CREATE USER IF NOT EXISTS '{{ mysql_wp_user }}'@'localhost' IDENTIFIED BY '{{ mysql_wp_passwd }}';
+      GRANT ALL PRIVILEGES ON {{ mysql_wp_database }}.* TO '{{ mysql_wp_user }}'@'localhost';
+      FLUSH PRIVILEGES;
+    "
+  register: mysql_db_result
+  changed_when: mysql_db_result.rc == 0
 
-- name: Create Wordpress user
-  community.mysql.mysql_user:
-    login_user: root
-    login_password: "{{ mysql_root_passwd }}"
-    name: "{{ mysql_wp_user }}"
-    password: "{{ mysql_wp_passwd }}"
-    state: present
-    priv:
-      'wordpress.*': 'ALL'
-
-- name: Generate an OpenSSL private key with the default values (4096 bits, RSA)
-  community.crypto.openssl_privatekey:
-    path: /etc/pki/tls/private/server.key
-
-- name: Generate an OpenSSL Certificate Signing Request
-  community.crypto.openssl_csr:
-    path: /etc/pki/tls/server.csr
-    privatekey_path: /etc/pki/tls/private/server.key
-    common_name: www.demo.com
-
-- name: Generate a Self Signed OpenSSL certificate
-  community.crypto.x509_certificate:
-    path: /etc/pki/tls/certs/server.crt
-    privatekey_path: /etc/pki/tls/private/server.key
-    csr_path: /etc/pki/tls/server.csr
-    provider: selfsigned
+# ------------------------------------------------------------------------------
+# SSL 証明書生成（community.crypto モジュールの代わりに openssl CLI を使用）
+# ------------------------------------------------------------------------------
+- name: Generate Self Signed OpenSSL certificate
+  ansible.builtin.command:
+    cmd: >
+      openssl req -x509 -nodes -days 365 -newkey rsa:2048
+      -keyout /etc/pki/tls/private/server.key
+      -out /etc/pki/tls/certs/server.crt
+      -subj "/CN=www.demo.com"
+    creates: /etc/pki/tls/certs/server.crt
 
 - name: Modify SSLCertificateFile of /etc/httpd/conf.d/ssl.conf
   ansible.builtin.lineinfile:
@@ -150,6 +127,9 @@
     regexp: '^SSLCertificateKeyFile'
     line: SSLCertificateKeyFile /etc/pki/tls/private/server.key
 
+# ------------------------------------------------------------------------------
+# WordPress のセットアップ
+# ------------------------------------------------------------------------------
 - name: Download Wordpress archive
   ansible.builtin.command:
     cmd: wget -q "{{ wp_archive_url }}" -O /tmp/wordpress.tar.gz
