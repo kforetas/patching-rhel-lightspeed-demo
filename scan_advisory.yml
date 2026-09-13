@@ -48,7 +48,7 @@
             {
               "hostname": inventory_hostname,
               "environment": (tags.environment | default('dev')) | capitalize,
-              "scan_time": now(tz='Asia/Tokyo', fmt='%Y-%m-%d %H:%M:%S JST'),
+              "scan_time": (now(true) + timedelta(hours=9)).strftime('%Y-%m-%d %H:%M:%S JST'),
               "vulnerabilities": parsed_json_raw.stdout | from_json
             } | to_nice_json(indent=2)
           }}
