@@ -57,61 +57,6 @@ Please refer to [Deploy keys](https://docs.github.com/en/authentication/connecti
 ## Installation and usage
 Assuming the demo environement has been already created by the way of before mentioned and you've also performed `git clone` this repo. Ensure that you are logged in to your Ansible Automation Controller before proceeding with following steps.
 
-### Create custom credential types
-The following custom credential types need to be defined. Go to Automation Execution > Infrastructure.
-
-#### Credential type for Lightspeed API Token
-1. Click `Credential Types` in the left menu.
-2. Click `Create credential type` button.
-3. Enter the following fields:
-   - Name: `Lightspeed API Token`
-   - Input configuration:
-   ```
-   fields:
-     - id: rh_client_id
-       type: string
-       label: Lightspeed client id
-     - id: rh_client_secret
-       type: string
-       label: Lightspeed client token
-       secret: true
-   required:
-     - rh_client_id
-     - rh_client_secret
-   ```
-   - Injector configuration:
-   ```
-   env:
-     RH_CLIENT_ID: '{{ rh_client_id }}'
-     RH_CLIENT_SECRET: '{{ rh_client_secret }}'
-   ```
-4. Click `Create credential type` button.
-
-#### Credential type for Git SSH Push
-1. Click `Credential Types` in the left menu.
-2. Click `Create credential type` button.
-3. Enter the following fields:
-   - Name: `Git SSH Push Credential`
-   - Input configuration:
-   ```
-   fields:
-     - id: git_ssh_private_key_b64
-       type: string
-       label: Git SSH private key
-       secret: true
-       multiline: true
-   required:
-     - git_ssh_private_key_b64
-   ```
-   - Injector configuration:
-   ```
-   env:
-     GIT_SSH_PRIVATE_KEY_B64: '{{ git_ssh_private_key_b64 }}'
-   ```
-4. Click `Create credential type` button.
-
-Please refer to [Ansible Doc](https://docs.redhat.com/en/documentation/red_hat_ansible_automation_platform/2.7/secure-assembly_controller_custom_credentials) for more details.
-
 ### Create credentials
 At leaset the following four credentails need to be defined. 
 
@@ -135,17 +80,6 @@ At leaset the following four credentails need to be defined.
    - Credential Type: `Machine`
    - SSH Private Key: your AWS private key
    - Username: `ec2-user`
-4. Click `Create credential` button.
-
-#### Credential for Red Hat Lightspeed API
-1. Click `Credentials` in the left menu.
-2. Click `Create credential` button.
-3. Enter the following fields:
-   - Name: `Lightspeed_cred`
-   - Organization: `Default`
-   - Credential Type: `Lightspeed API Token`
-   - Lightspeed client id: your id for Lightspeed
-   - Lightspeed client token: your token for Lightspeed
 4. Click `Create credential` button.
 
 #### Credential for pusing to Git repo
