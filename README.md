@@ -1,24 +1,52 @@
 # patching-rhel-lightspeed-demo
 This repo includes ansible playbooks for a demo project of automating periodic patching process for RHEL with Red Hat Lightspeed and Red Hat Ansible Automation Platform.
 
-## Automating patcing process for RHEL with Red Hat Lightspeed and Red Hat Ansible Automation Platform
-The goal behind the code is to demonstrate a simple example for automating patcing process with Red Hat Lightspee as a vulnerability management and with Red Hat Asible Automation Platform as an automation orchestrator.
+## Automating patcing process for RHEL with Red Hat Ansible Automation Platform
+The goal behind the code is to demonstrate a simple example for automating patcing process with Red Hat Asible Automation Platform as an automation orchestrator.
 
-## Assumed demo environment
+## Ansible Automation Platform environment
 The assumed environment can be set up on AWS EC2 easily by using playbooks and roles in the [setup](./setup) folder. Please refer to [SETUP.md](./setup/SETUP.md) for more details.
+
 
 ## Included contents
 ### Playbooks
+#### Environment
 |Name     |Description|
 |:--------|:----------|
-|`create_advisory_list.yml`|Create an applicable security advisory list from Red Hat Lightspeed.|
-|`publish_dataset.yml`|Push the advisory list to a Git Repo.|
+|`create_jobtemplate.yml`|パッチ適用対象のVMを作成するPlaybook|
+|`create_workflow.yml`|パッチ適用対象のVMを作成するPlaybook|
+|`create_managed_vms.yml`|パッチ適用対象のVMを作成するPlaybook|
+|`delete_managed_vms.yml`|パッチ適用対象のVMを削除するPlaybook|
+|`create_demo_portal.yml`|デモ用ポータル画面をVM構築〜アプリ設定まで実施するPlaybook|
+
+#### Scan
+|Name     |Description|
+|:--------|:----------|
+|`scan_advisory.yml`|パッチ適用対象のVMの適用可能なAdvisoryをスキャンするPlaybook|
+|`send_slack_scan.yml`|スキャン結果をSlackに通知するPlaybook|
+
+#### Patch
+|Name     |Description|
+|:--------|:----------|
+|`publish_advisory.yml`|Push the advisory list to a Git Repo.|
+|`send_slack_launch.yml`|Send Slack for Approval.|
 |`backup_vm.yml`|Snapshot the disk of runnning managed VMs.|
 |`apply_errata.yml`|Apply all security advisories in the advisory list.|
 |`reboot_vm.yml`|Reboot the running managed VMs.|
 |`test_vm.yml`|Test the infrastructure of the resbooted VMs.|
 |`test_app.yml`|Test the application of the rebooted VMs.|
-|`refresh_lightspeed.yml`|Upload the refreshed system status to Red Hat Lightspeed.|
+|`* scan_advisory.yml`|パッチ適用対象のVMの適用可能なAdvisoryをスキャンするPlaybook|
+|`send_slack_report.yml`|Send slack for finish report.|
+
+### Workflows
+|Name     |Description|
+|:--------|:----------|
+|`Delete and Create VMs WF`|パッチ適用対象のVMを削除し、新しいVMを作成するWorkflow|
+|`Scan WF`|パッチ適用対象のVMのスキャンを実施して、Slack通知するWorkflow|
+|`Periodic Security Patching WF`|デモポータルからの依頼を受け取って、パッチ適用の一連の流れを実施するWorkflow|
+|`Advisory List Publisher WF`|`Periodic Security Patching WF`の一部で、デモポータルからの依頼を受け取って、GitHubに`remediation_dataset`を登録するWorkflow|
+|`Apply Patch WF`|`Periodic Security Patching WF`の一部で、`remediation_dataset`のパッチ適用内容を元にパッチ適用の一連の流れを実施するWorkflow|
+
 
 ### Group variables
 These variables have already been set as follows. You can adjust them based on your environment.
@@ -145,6 +173,14 @@ At leaset the following four credentails need to be defined.
 
 Please refer to [Ansible Doc](https://docs.redhat.com/en/documentation/red_hat_ansible_automation_platform/2.7/develop-proc_controller_adding_a_project) for more details.
 
+### Create a AAP API-Token
+1. Click User > admin > API Tokens
+2. Click `Create API token` button.
+3. Enter the following fields:
+   - token description: `Patch Demo Integration`
+   - Scope: `Write`
+4. Click `Create token` button
+5. Note `API token`.
 
 ### Create job templates
 Each job template is equivalent to a playbook in this repository. Repeat these steps for each template/playbook that you want to use and change the variables specific to the individual playbook. Please refer to [Ansible Doc](https://docs.redhat.com/en/documentation/red_hat_ansible_automation_platform/2.7/develop-proc_controller_create_job_template) for more details.

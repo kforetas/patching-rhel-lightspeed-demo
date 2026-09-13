@@ -1,0 +1,838 @@
+---
+# Create Job_Template
+# Extra_vars: 
+# ----------------------------------------------
+# aap_controller_url: ex) https://ansible-1.ckp7b.sandbox3023.opentlc.com
+# ansible_user: ex) admin
+# ansible_pw: Password
+# inventory_name: demo-itst-inventory
+# project_name: demo-itst-project
+# credential_name: ocp_credential
+# execution_environment_name: Control Plane Execution Environment
+# label_name: demo
+# image_pull_secret_credential: quay.io Credential
+# ----------------------------------------------
+- name: Create a JobTemplate 
+  hosts: localhost
+
+  environment:
+    CONTROLLER_HOST: "{{ aap_controller_url }}"
+    CONTROLLER_USERNAME: "{{ ansible_user }}"
+    CONTROLLER_PASSWORD: "{{ ansible_pw }}"
+    CONTROLLER_VERIFY_SSL: false
+
+  tasks:
+    - name: L2_ev01_gitclone_setparam
+      ansible.controller.job_template:
+        name: L2_ev01_gitclone_setparam
+        playbook: L2_jobtemplate/L2_ev01_gitclone_setparam.yaml
+        job_type: run
+        inventory: "{{ inventory_name }}"
+        project: "{{ project_name }}"
+        state: present
+        credential: "{{ credential_name }}"
+        execution_environment: "{{ execution_environment_name }}"
+        organization: Default
+        labels:
+          - "{{ label_name }}"
+        survey_enabled: true
+        survey_spec:
+          name: Simple
+          description: Description of the simple survey
+          spec:
+            - type: text
+              question_name: test_id
+              variable: test_id
+              required: true
+
+    - name: L2_ev02_create_namespace
+      ansible.controller.job_template:
+        name: L2_ev02_create_namespace
+        playbook: L2_jobtemplate/L2_ev02_create_namespace.yaml
+        job_type: run
+        inventory: "{{ inventory_name }}"
+        project: "{{ project_name }}"
+        state: present
+        credential: "{{ credential_name }}"
+        execution_environment: "{{ execution_environment_name }}"
+        organization: Default
+        labels:
+          - "{{ label_name }}"
+        survey_enabled: true
+        survey_spec:
+          name: Simple
+          description: Description of the simple survey
+          spec:
+            - type: text
+              question_name: namespace_name
+              variable: namespace_name
+              required: true
+
+    - name: L2_ev03_create_secret
+      ansible.controller.job_template:
+        name: L2_ev03_create_secret
+        playbook: L2_jobtemplate/L2_ev03_create_secret.yaml
+        job_type: run
+        inventory: "{{ inventory_name }}"
+        project: "{{ project_name }}"
+        state: present
+        credential: "{{ credential_name }}"
+        execution_environment: "{{ execution_environment_name }}"
+        organization: Default
+        labels:
+          - "{{ label_name }}"
+        survey_enabled: true
+        survey_spec:
+          name: Simple
+          description: Description of the simple survey
+          spec:
+            - type: text
+              question_name: namespace_name
+              variable: namespace_name
+              required: true
+        extra_vars:
+          image_pull_secret_credential: "{{ image_pull_secret_credential }}"
+
+    - name: L2_ev04_create_database
+      ansible.controller.job_template:
+        name: L2_ev04_create_database
+        playbook: L2_jobtemplate/L2_ev04_create_database.yaml
+        job_type: run
+        inventory: "{{ inventory_name }}"
+        project: "{{ project_name }}"
+        state: present
+        credential: "{{ credential_name }}"
+        execution_environment: "{{ execution_environment_name }}"
+        organization: Default
+        labels:
+          - "{{ label_name }}"
+        survey_enabled: true
+        survey_spec:
+          name: Simple
+          description: Description of the simple survey
+          spec:
+            - type: text
+              question_name: namespace_name
+              variable: namespace_name
+              required: true
+            - type: text
+              question_name: database_request
+              variable: database_request
+              required: true
+
+    - name: L2_ev05_create_table
+      ansible.controller.job_template:
+        name: L2_ev05_create_table
+        playbook: L2_jobtemplate/L2_ev05_create_table.yaml
+        job_type: run
+        inventory: "{{ inventory_name }}"
+        project: "{{ project_name }}"
+        state: present
+        credential: "{{ credential_name }}"
+        execution_environment: "{{ execution_environment_name }}"
+        organization: Default
+        labels:
+          - "{{ label_name }}"
+        survey_enabled: true
+        survey_spec:
+          name: Simple
+          description: Description of the simple survey
+          spec:
+            - type: text
+              question_name: namespace_name
+              variable: namespace_name
+              required: true
+            - type: text
+              question_name: create_table_image
+              variable: create_table_image
+              required: true
+            - type: text
+              question_name: create_table_request
+              variable: create_table_request
+              required: true
+
+    - name: L2_ev06_insert_table
+      ansible.controller.job_template:
+        name: L2_ev06_insert_table
+        playbook: L2_jobtemplate/L2_ev06_insert_table.yaml
+        job_type: run
+        inventory: "{{ inventory_name }}"
+        project: "{{ project_name }}"
+        state: present
+        credential: "{{ credential_name }}"
+        execution_environment: "{{ execution_environment_name }}"
+        organization: Default
+        labels:
+          - "{{ label_name }}"
+        survey_enabled: true
+        survey_spec:
+          name: Simple
+          description: Description of the simple survey
+          spec:
+            - type: text
+              question_name: namespace_name
+              variable: namespace_name
+              required: true
+            - type: text
+              question_name: insert_table_image
+              variable: insert_table_image
+              required: true
+            - type: text
+              question_name: insert_table_request
+              variable: insert_table_request
+              required: true
+
+    - name: L2_ev07_create_pvc
+      ansible.controller.job_template:
+        name: L2_ev07_create_pvc
+        playbook: L2_jobtemplate/L2_ev07_create_pvc.yaml
+        job_type: run
+        inventory: "{{ inventory_name }}"
+        project: "{{ project_name }}"
+        state: present
+        credential: "{{ credential_name }}"
+        execution_environment: "{{ execution_environment_name }}"
+        organization: Default
+        labels:
+          - "{{ label_name }}"
+        survey_enabled: true
+        survey_spec:
+          name: Simple
+          description: Description of the simple survey
+          spec:
+            - type: text
+              question_name: test_id
+              variable: test_id
+              required: true
+            - type: text
+              question_name: test_result_seq
+              variable: test_result_seq
+              required: true
+            - type: text
+              question_name: namespace_name
+              variable: namespace_name
+              required: true
+
+    - name: L2_ev08_run_data_setup_app
+      ansible.controller.job_template:
+        name: L2_ev08_run_data_setup_app
+        playbook: L2_jobtemplate/L2_ev08_run_data_setup_app.yaml
+        job_type: run
+        inventory: "{{ inventory_name }}"
+        project: "{{ project_name }}"
+        state: present
+        credential: "{{ credential_name }}"
+        execution_environment: "{{ execution_environment_name }}"
+        organization: Default
+        labels:
+          - "{{ label_name }}"
+        survey_enabled: true
+        survey_spec:
+          name: Simple
+          description: Description of the simple survey
+          spec:
+            - type: text
+              question_name: test_id
+              variable: test_id
+              required: true
+            - type: text
+              question_name: test_result_seq
+              variable: test_result_seq
+              required: true
+            - type: text
+              question_name: namespace_name
+              variable: namespace_name
+              required: true
+
+    - name: L2_ev09_end_provisioning
+      ansible.controller.job_template:
+        name: L2_ev09_end_provisioning
+        playbook: L2_jobtemplate/L2_ev09_end_provisioning.yaml
+        job_type: run
+        inventory: "{{ inventory_name }}"
+        project: "{{ project_name }}"
+        state: present
+        credential: "{{ credential_name }}"
+        execution_environment: "{{ execution_environment_name }}"
+        organization: Default
+        labels:
+          - "{{ label_name }}"
+        survey_enabled: true
+        survey_spec:
+          name: Simple
+          description: Description of the simple survey
+          spec:
+            - type: text
+              question_name: test_id
+              variable: test_id
+              required: true
+            - type: text
+              question_name: test_result_seq
+              variable: test_result_seq
+              required: true
+            - type: integer
+              question_name: seq
+              variable: seq
+              required: true
+
+    - name: L2_ev10_create_kafka
+      ansible.controller.job_template:
+        name: L2_ev10_create_kafka
+        playbook: L2_jobtemplate/L2_ev10_create_kafka.yaml
+        job_type: run
+        inventory: "{{ inventory_name }}"
+        project: "{{ project_name }}"
+        state: present
+        credential: "{{ credential_name }}"
+        execution_environment: "{{ execution_environment_name }}"
+        organization: Default
+        labels:
+          - "{{ label_name }}"
+        survey_enabled: true
+        survey_spec:
+          name: Simple
+          description: Description of the simple survey
+          spec:
+            - type: text
+              question_name: namespace_name
+              variable: namespace_name
+              required: true
+            - type: text
+              question_name: kafka_request
+              variable: kafka_request
+              required: true
+
+    - name: L2_rp01_create_namespace
+      ansible.controller.job_template:
+        name: L2_rp01_create_namespace
+        playbook: L2_jobtemplate/L2_rp01_create_namespace.yaml
+        job_type: run
+        inventory: "{{ inventory_name }}"
+        project: "{{ project_name }}"
+        state: present
+        credential: "{{ credential_name }}"
+        execution_environment: "{{ execution_environment_name }}"
+        organization: Default
+        labels:
+          - "{{ label_name }}"
+        survey_enabled: true
+        survey_spec:
+          name: Simple
+          description: Description of the simple survey
+          spec:
+            - type: text
+              question_name: namespace_name
+              variable: namespace_name
+              required: true
+
+    - name: L2_rp02_create_secret
+      ansible.controller.job_template:
+        name: L2_rp02_create_secret
+        playbook: L2_jobtemplate/L2_rp02_create_secret.yaml
+        job_type: run
+        inventory: "{{ inventory_name }}"
+        project: "{{ project_name }}"
+        state: present
+        credential: "{{ credential_name }}"
+        execution_environment: "{{ execution_environment_name }}"
+        organization: Default
+        labels:
+          - "{{ label_name }}"
+        survey_enabled: true
+        survey_spec:
+          name: Simple
+          description: Description of the simple survey
+          spec:
+            - type: text
+              question_name: namespace_name
+              variable: namespace_name
+              required: true
+        extra_vars:
+          image_pull_secret_credential: "{{ image_pull_secret_credential }}"
+
+    - name: L2_rp03_create_database
+      ansible.controller.job_template:
+        name: L2_rp03_create_database
+        playbook: L2_jobtemplate/L2_rp03_create_database.yaml
+        job_type: run
+        inventory: "{{ inventory_name }}"
+        project: "{{ project_name }}"
+        state: present
+        credential: "{{ credential_name }}"
+        execution_environment: "{{ execution_environment_name }}"
+        organization: Default
+        labels:
+          - "{{ label_name }}"
+        survey_enabled: true
+        survey_spec:
+          name: Simple
+          description: Description of the simple survey
+          spec:
+            - type: text
+              question_name: namespace_name
+              variable: namespace_name
+              required: true
+
+    - name: L2_rp04_create_table
+      ansible.controller.job_template:
+        name: L2_rp04_create_table
+        playbook: L2_jobtemplate/L2_rp04_create_table.yaml
+        job_type: run
+        inventory: "{{ inventory_name }}"
+        project: "{{ project_name }}"
+        state: present
+        credential: "{{ credential_name }}"
+        execution_environment: "{{ execution_environment_name }}"
+        organization: Default
+        labels:
+          - "{{ label_name }}"
+        survey_enabled: true
+        survey_spec:
+          name: Simple
+          description: Description of the simple survey
+          spec:
+            - type: text
+              question_name: namespace_name
+              variable: namespace_name
+              required: true
+            - type: text
+              question_name: create_table_image
+              variable: create_table_image
+              required: true
+
+    - name: L2_rp05_insert_table
+      ansible.controller.job_template:
+        name: L2_rp05_insert_table
+        playbook: L2_jobtemplate/L2_rp05_insert_table.yaml
+        job_type: run
+        inventory: "{{ inventory_name }}"
+        project: "{{ project_name }}"
+        state: present
+        credential: "{{ credential_name }}"
+        execution_environment: "{{ execution_environment_name }}"
+        organization: Default
+        labels:
+          - "{{ label_name }}"
+        survey_enabled: true
+        survey_spec:
+          name: Simple
+          description: Description of the simple survey
+          spec:
+            - type: text
+              question_name: namespace_name
+              variable: namespace_name
+              required: true
+            - type: text
+              question_name: insert_table_image
+              variable: insert_table_image
+              required: true
+
+    - name: L2_rp06_deploy_report-viewer
+      ansible.controller.job_template:
+        name: L2_rp06_deploy_report-viewer
+        playbook: L2_jobtemplate/L2_rp06_deploy_report-viewer.yaml
+        job_type: run
+        inventory: "{{ inventory_name }}"
+        project: "{{ project_name }}"
+        state: present
+        credential: "{{ credential_name }}"
+        execution_environment: "{{ execution_environment_name }}"
+        organization: Default
+        labels:
+          - "{{ label_name }}"
+        survey_enabled: true
+        survey_spec:
+          name: Simple
+          description: Description of the simple survey
+          spec:
+            - type: text
+              question_name: namespace_name
+              variable: namespace_name
+              required: true
+
+    - name: L2_rp07_deploy_result-manager
+      ansible.controller.job_template:
+        name: L2_rp07_deploy_result-manager
+        playbook: L2_jobtemplate/L2_rp07_deploy_result-manager.yaml
+        job_type: run
+        inventory: "{{ inventory_name }}"
+        project: "{{ project_name }}"
+        state: present
+        credential: "{{ credential_name }}"
+        execution_environment: "{{ execution_environment_name }}"
+        organization: Default
+        labels:
+          - "{{ label_name }}"
+        survey_enabled: true
+        survey_spec:
+          name: Simple
+          description: Description of the simple survey
+          spec:
+            - type: text
+              question_name: namespace_name
+              variable: namespace_name
+              required: true
+
+    - name: L2_rp08_deploy_start-scenario
+      ansible.controller.job_template:
+        name: L2_rp08_deploy_start-scenario
+        playbook: L2_jobtemplate/L2_rp08_deploy_start-scenario.yaml
+        job_type: run
+        inventory: "{{ inventory_name }}"
+        project: "{{ project_name }}"
+        state: present
+        credential: "{{ credential_name }}"
+        execution_environment: "{{ execution_environment_name }}"
+        organization: Default
+        labels:
+          - "{{ label_name }}"
+        survey_enabled: true
+        survey_spec:
+          name: Simple
+          description: Description of the simple survey
+          spec:
+            - type: text
+              question_name: namespace_name
+              variable: namespace_name
+              required: true
+
+    - name: L2_rp10_delete_namespace
+      ansible.controller.job_template:
+        name: L2_rp10_delete_namespace
+        playbook: L2_jobtemplate/L2_rp10_delete_namespace.yaml
+        job_type: run
+        inventory: "{{ inventory_name }}"
+        project: "{{ project_name }}"
+        state: present
+        credential: "{{ credential_name }}"
+        execution_environment: "{{ execution_environment_name }}"
+        organization: Default
+        labels:
+          - "{{ label_name }}"
+        survey_enabled: true
+        survey_spec:
+          name: Simple
+          description: Description of the simple survey
+          spec:
+            - type: text
+              question_name: namespace_name
+              variable: namespace_name
+              required: true
+
+    - name: L2_ut01_init_job
+      ansible.controller.job_template:
+        name: L2_ut01_init_job
+        playbook: L2_jobtemplate/L2_ut01_init_job.yaml
+        job_type: run
+        inventory: "{{ inventory_name }}"
+        project: "{{ project_name }}"
+        state: present
+        credential: "{{ credential_name }}"
+        execution_environment: "{{ execution_environment_name }}"
+        organization: Default
+        labels:
+          - "{{ label_name }}"
+        survey_enabled: true
+        survey_spec:
+          name: Simple
+          description: Description of the simple survey
+          spec:
+            - type: text
+              question_name: test_id
+              variable: test_id
+              required: true
+
+    - name: L2_ut02_closing_job
+      ansible.controller.job_template:
+        name: L2_ut02_closing_job
+        playbook: L2_jobtemplate/L2_ut02_closing_job.yaml
+        job_type: run
+        inventory: "{{ inventory_name }}"
+        project: "{{ project_name }}"
+        state: present
+        credential: "{{ credential_name }}"
+        execution_environment: "{{ execution_environment_name }}"
+        organization: Default
+        labels:
+          - "{{ label_name }}"
+        survey_enabled: true
+        survey_spec:
+          name: Simple
+          description: Description of the simple survey
+          spec:
+            - type: text
+              question_name: test_id
+              variable: test_id
+              required: true
+            - type: text
+              question_name: 	test_result_seq
+              variable: 	test_result_seq
+              required: true
+
+    - name: L2_st01_start_scenario
+      ansible.controller.job_template:
+        name: L2_st01_start_scenario
+        playbook: L2_jobtemplate/L2_st01_start_scenario.yaml
+        job_type: run
+        inventory: "{{ inventory_name }}"
+        project: "{{ project_name }}"
+        state: present
+        credential: "{{ credential_name }}"
+        execution_environment: "{{ execution_environment_name }}"
+        organization: Default
+        labels:
+          - "{{ label_name }}"
+        survey_enabled: true
+        survey_spec:
+          name: Simple
+          description: Description of the simple survey
+          spec:
+            - type: text
+              question_name: test_id
+              variable: test_id
+              required: true
+            - type: text
+              question_name: 	name
+              variable: 	name
+              required: true
+
+    - name: L2_st02_run_online_app
+      ansible.controller.job_template:
+        name: L2_st02_run_online_app
+        playbook: L2_jobtemplate/L2_st02_run_online_app.yaml
+        job_type: run
+        inventory: "{{ inventory_name }}"
+        project: "{{ project_name }}"
+        state: present
+        credential: "{{ credential_name }}"
+        execution_environment: "{{ execution_environment_name }}"
+        organization: Default
+        labels:
+          - "{{ label_name }}"
+        survey_enabled: true
+        survey_spec:
+          name: Simple
+          description: Description of the simple survey
+          spec:
+            - type: text
+              question_name: test_id
+              variable: test_id
+              required: true
+            - type: text
+              question_name: 	test_result_seq
+              variable: 	test_result_seq
+              required: true
+            - type: text
+              question_name: name
+              variable: name
+              required: true
+            - type: text
+              question_name: 	simulation_date
+              variable: 	simulation_date
+              required: true
+
+    - name: L2_st03_data_entry
+      ansible.controller.job_template:
+        name: L2_st03_data_entry
+        playbook: L2_jobtemplate/L2_st03_data_entry.yaml
+        job_type: run
+        inventory: "{{ inventory_name }}"
+        project: "{{ project_name }}"
+        state: present
+        credential: "{{ credential_name }}"
+        execution_environment: "{{ execution_environment_name }}"
+        organization: Default
+        labels:
+          - "{{ label_name }}"
+        survey_enabled: true
+        survey_spec:
+          name: Simple
+          description: Description of the simple survey
+          spec:
+            - type: text
+              question_name: test_id
+              variable: test_id
+              required: true
+            - type: text
+              question_name: 	test_result_seq
+              variable: 	test_result_seq
+              required: true
+            - type: text
+              question_name: name
+              variable: name
+              required: true
+            - type: text
+              question_name: 	simulation_date
+              variable: 	simulation_date
+              required: true
+
+    - name: L2_st04_run_batch_app
+      ansible.controller.job_template:
+        name: L2_st04_run_batch_app
+        playbook: L2_jobtemplate/L2_st04_run_batch_app.yaml
+        job_type: run
+        inventory: "{{ inventory_name }}"
+        project: "{{ project_name }}"
+        state: present
+        credential: "{{ credential_name }}"
+        execution_environment: "{{ execution_environment_name }}"
+        organization: Default
+        labels:
+          - "{{ label_name }}"
+        survey_enabled: true
+        survey_spec:
+          name: Simple
+          description: Description of the simple survey
+          spec:
+            - type: text
+              question_name: test_id
+              variable: test_id
+              required: true
+            - type: text
+              question_name: 	test_result_seq
+              variable: 	test_result_seq
+              required: true
+            - type: text
+              question_name: name
+              variable: name
+              required: true
+            - type: text
+              question_name: 	simulation_date
+              variable: 	simulation_date
+              required: true
+
+    - name: L2_st05_assert_result
+      ansible.controller.job_template:
+        name: L2_st05_assert_result
+        playbook: L2_jobtemplate/L2_st05_assert_result.yaml
+        job_type: run
+        inventory: "{{ inventory_name }}"
+        project: "{{ project_name }}"
+        state: present
+        credential: "{{ credential_name }}"
+        execution_environment: "{{ execution_environment_name }}"
+        organization: Default
+        labels:
+          - "{{ label_name }}"
+        survey_enabled: true
+        survey_spec:
+          name: Simple
+          description: Description of the simple survey
+          spec:
+            - type: text
+              question_name: test_id
+              variable: test_id
+              required: true
+            - type: text
+              question_name: 	test_result_seq
+              variable: 	test_result_seq
+              required: true
+            - type: text
+              question_name: name
+              variable: name
+              required: true
+            - type: text
+              question_name: 	simulation_date
+              variable: 	simulation_date
+              required: true
+
+    - name: L2_st06_stop_online_app
+      ansible.controller.job_template:
+        name: L2_st06_stop_online_app
+        playbook: L2_jobtemplate/L2_st06_stop_online_app.yaml
+        job_type: run
+        inventory: "{{ inventory_name }}"
+        project: "{{ project_name }}"
+        state: present
+        credential: "{{ credential_name }}"
+        execution_environment: "{{ execution_environment_name }}"
+        organization: Default
+        labels:
+          - "{{ label_name }}"
+        survey_enabled: true
+        survey_spec:
+          name: Simple
+          description: Description of the simple survey
+          spec:
+            - type: text
+              question_name: test_id
+              variable: test_id
+              required: true
+            - type: text
+              question_name: 	test_result_seq
+              variable: 	test_result_seq
+              required: true
+            - type: text
+              question_name: name
+              variable: name
+              required: true
+            - type: text
+              question_name: 	simulation_date
+              variable: 	simulation_date
+              required: true
+
+    - name: L2_st07_delete_job_all
+      ansible.controller.job_template:
+        name: L2_st07_delete_job_all
+        playbook: L2_jobtemplate/L2_st07_delete_job_all.yaml
+        job_type: run
+        inventory: "{{ inventory_name }}"
+        project: "{{ project_name }}"
+        state: present
+        credential: "{{ credential_name }}"
+        execution_environment: "{{ execution_environment_name }}"
+        organization: Default
+        labels:
+          - "{{ label_name }}"
+        survey_enabled: true
+        survey_spec:
+          name: Simple
+          description: Description of the simple survey
+          spec:
+            - type: text
+              question_name: test_id
+              variable: test_id
+              required: true
+            - type: text
+              question_name: 	test_result_seq
+              variable: 	test_result_seq
+              required: true
+            - type: text
+              question_name: 	simulation_date
+              variable: 	simulation_date
+              required: true
+
+    - name: L2_st10_end_scenario
+      ansible.controller.job_template:
+        name: L2_st10_end_scenario
+        playbook: L2_jobtemplate/L2_st10_end_scenario.yaml
+        job_type: run
+        inventory: "{{ inventory_name }}"
+        project: "{{ project_name }}"
+        state: present
+        credential: "{{ credential_name }}"
+        execution_environment: "{{ execution_environment_name }}"
+        organization: Default
+        labels:
+          - "{{ label_name }}"
+        survey_enabled: true
+        survey_spec:
+          name: Simple
+          description: Description of the simple survey
+          spec:
+            - type: text
+              question_name: test_id
+              variable: test_id
+              required: true
+            - type: text
+              question_name: 	test_result_seq
+              variable: 	test_result_seq
+              required: true
+            - type: 	integer
+              question_name: 	seq
+              variable: 	seq
+              required: true
+            - type: text
+              question_name: 	simulation_date
+              variable: 	simulation_date
+              required: true
