@@ -1,0 +1,49 @@
+---
+- name: Delete managed VMs
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    # AAP の Extra Vars や group_vars/all.yaml から取得（未設定時は ap-northeast-1）
+    aws_region: "{{ aws_region | default('ap-northeast-1') }}"
+
+  tasks:
+    - name: Fail if required variables not defined
+      ansible.builtin.assert:
+        that:
+          - aws_region is defined
+          - managed_vms_name_prefix is defined
+          - managed_vms_type is defined
+          - purpose is defined
+        fail_msg: "Required variables not set. Please check group_vars or Extra Vars."
+
+    - name: Check if the managed VMs exist
+      amazon.aws.ec2_instance_info:
+        filters:
+          "tag:Name": "{{ managed_vms_name_prefix }}-*"
+          "tag:type": "{{ managed_vms_type }}"
+          "tag:purpose": "{{ purpose }}"
+          instance-state-name:
+            - pending
+            - running
+            - stopping
+            - stopped
+        region: "{{ aws_region }}"
+      register: existing_vms
+
+    - name: Output status before deletion
+      ansible.builtin.debug:
+        msg:
+          - "Found {{ existing_vms.instances | length }} instance(s) to terminate."
+          - "Target Instance IDs: {{ existing_vms.instances | map(attribute='instance_id') | list }}"
+      when: existing_vms.instances is defined and existing_vms.instances | length > 0
+
+    - name: Terminate the managed VMs
+      amazon.aws.ec2_instance:
+        instance_ids: "{{ item.instance_id }}"
+        region: "{{ aws_region }}"
+        state: absent
+        wait: true
+      loop: "{{ existing_vms.instances }}"
+      when: existing_vms.instances is defined and existing_vms.instances | length > 0

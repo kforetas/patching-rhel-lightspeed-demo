@@ -1,10 +1,49 @@
 ---
+# ==============================================================================
+# Global Infrastructure & Demo Environment Settings
+# ==============================================================================
 purpose: patch_demo
+aws_region: ap-northeast-1
 
-aws_region: ap-northeast-1 # adjust with your preference
+# ------------------------------------------------------------------------------
+# AWS Network & Security Group Config
+# ------------------------------------------------------------------------------
+aws_vpc: patch_demo_vpc
+aws_vpc_cidr_block: 10.1.0.0/16
+aws_vpc_subnet_name: patch_demo_subnet
+aws_subnet_cidr_block: 10.1.1.0/24
+aws_igw_name: patch_demo_gtw
+aws_routetable_name: patch_demo_rtb
+aws_securitygroup_name: patch_demo_sg
+
+# ------------------------------------------------------------------------------
+# Managed Vulnerable VMs Config (dev / prod)
+# ------------------------------------------------------------------------------
+managed_vms_type: managed
+managed_vms_name_prefix: managed
+managed_vms_environment:
+  - dev
+  - prod
+
+aws_managed_instance:
+  dev:
+    ami: ami-06b08b819edcd2cf0  # RHEL 9.7 (vulnerabilities intact)
+    size: t3.small
+  prod:
+    ami: ami-0dc4c409764b96fa9  # RHEL 9.7 (vulnerabilities intact)
+    size: t3.small
+
+# ------------------------------------------------------------------------------
+# AAP Node Config (Optional/Reference)
+# ------------------------------------------------------------------------------
+aws_aap_instance_ami: ami-07fe9ea188b04b2e6
+aws_aap_instance_size: t2.xlarge
+aap_vm_type: aap
+aap_vm_name: aap01
+
+# ------------------------------------------------------------------------------
+# Remediation & Portal App Settings
+# ------------------------------------------------------------------------------
 wp_weblog_title: "DemoSite"
-
-# Location of remediation_dataset downloaded.
 remediation_dataset_file: "{{ playbook_dir }}/datasets/remediation_dataset.yml"
-
 remediation_group: canonical_remediation_targets
