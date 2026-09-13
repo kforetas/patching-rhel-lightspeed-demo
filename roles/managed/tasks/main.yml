@@ -19,12 +19,12 @@
     fail_msg: "Required variables not set"
 
 - name: Register to Red Hat Subscription Management
-  ansible.builtin.redhat_subscription:
-  # redhat.rhel_system_roles.redhat_subscription:
-    state: present
-    username: "{{ rhsm_username }}"
-    password: "{{ rhsm_passwd }}"
+  ansible.builtin.command:
+    cmd: "subscription-manager register --username={{ rhsm_username }} --password={{ rhsm_passwd }} --force"
   become: true
+  register: rhsm_register_result
+  changed_when: rhsm_register_result.rc == 0
+  failed_when: false
 
 - name: Patch rhsm config
   ansible.builtin.command: subscription-manager config --rhsm.manage_repos=1
@@ -41,18 +41,6 @@
 
 - name: Flush handlers
   ansible.builtin.meta: flush_handlers
-
-- name: Ensure systems are connected to Insights
-  ansible.builtin.command: insights-client --register
-  become: true
-  register: insights_result
-  changed_when: insights_result.rc == 0
-  failed_when: false
-
-  # ansible.builtin.redhat_insights:
-  # redhat.insights.insights_register:
-  #  state: present
-  # become: true
 
 - name: Install mysql and other related packages
   ansible.builtin.dnf:
