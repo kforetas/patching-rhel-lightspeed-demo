@@ -107,7 +107,7 @@
             + advisory_arguments
           }}
       register: advisory_update
-      when: advisory_check.rc == [0, 100]
+      when: advisory_check.rc == 100
       changed_when: advisory_update.rc == 0
 
     - name: Store remediation result for this host

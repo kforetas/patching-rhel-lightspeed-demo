@@ -37,11 +37,6 @@ remediation_group: canonical_remediation_targets
 
 ## Prerequisite
 
-### Set up an API Token for Red Hat Lightspeed
-You need to configure a service account, then generate a client ID and client secret pair to use with that service account. Please refer to [Lightspeed Docs](https://docs.redhat.com/en/documentation/red_hat_lightspeed/1-latest/html/using_apis_to_configure_red_hat_lightspeed_services/apis-authentication) for more details.
-
-
-
 ### Prepare a deploy key to your GitHub repo
 You need to set up a deploy key to gives workflows running on AAP safe access to just one single repository. 
 
@@ -86,16 +81,12 @@ At leaset the following four credentails need to be defined.
 1. Click `Credentials` in the left menu.
 2. Click `Create credential` button.
 3. Enter the following fields:
-   - Name: `Git_SSH_key`
+   - Name: `GitHub Push Credential`
    - Organization: `Default`
-   - Credential Type: `Git SSH Push Credential`
+   - Credential Type: `Machine`
    - Git SSH Private Key: your Git private key
 4. Click `Create credential` button.
 
-   NOTE: You need to generate a key pair for your Git repo as a file if you have not yet. In order to input this key field, copy the content of the above key file **base64 encoded** using `base64 < your_key`.
-
-
-Please refer to [Ansible Doc](https://docs.redhat.com/en/documentation/red_hat_ansible_automation_platform/2.7/secure-assembly_controller_credentials) for more details.
 
 ### Create inventories
 1. Click `Inventories` in the left menu.
