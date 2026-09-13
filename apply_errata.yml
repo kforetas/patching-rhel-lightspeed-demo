@@ -73,6 +73,14 @@
           package_manager: "{{ ansible_facts.pkg_mgr }}"
           advisories: "{{ remediation_advisories }}"
 
+    # --------------------------------------------------------------------------
+    # 【追加】メモリ解放のため DNF キャッシュをクリア（最小限の修正）
+    # --------------------------------------------------------------------------
+    - name: Clean DNF cache to free memory
+      ansible.builtin.command:
+        cmd: dnf clean all
+      changed_when: false
+      
     - name: Check whether approved advisories are applicable
       ansible.builtin.command:
         argv: >-
