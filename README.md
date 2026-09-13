@@ -1,5 +1,5 @@
 # patching-rhel-lightspeed-demo
-This repo includes ansible playbooks for a demo project of automating periodic patching process for RHEL with Red Hat Lightspeed and Red Hat Ansible Automation Platform.
+This repo includes ansible playbooks for a demo project of automating periodic patching process for RHEL with Red Hat Ansible Automation Platform.
 
 ## Automating patcing process for RHEL with Red Hat Ansible Automation Platform
 The goal behind the code is to demonstrate a simple example for automating patcing process with Red Hat Asible Automation Platform as an automation orchestrator.
