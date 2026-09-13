@@ -47,8 +47,8 @@
           {{
             {
               "hostname": inventory_hostname,
-              "environment": 'Prod' if 'prod' in group_names or 'prod' in inventory_hostname else 'Dev',
-              "scan_time": now(utc=True, fmt='%Y-%m-%d %H:%M:%S UTC'),
+              "environment": (tags.environment | default('dev')) | capitalize,
+              "scan_time": now(tz='Asia/Tokyo', fmt='%Y-%m-%d %H:%M:%S JST'),
               "vulnerabilities": parsed_json_raw.stdout | from_json
             } | to_nice_json(indent=2)
           }}
