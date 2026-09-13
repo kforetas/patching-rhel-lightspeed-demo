@@ -12,11 +12,16 @@
       register: dnf_output
       changed_when: false
 
-    # 2. Python で Advisory ID ごとにパッケージをリスト化してグループ化
-    - name: Parse and group DNF output by Advisory ID
+    # 2. Python で Advisory ID ごとにグループ化 & JST時刻・Environmentを埋め込み
+    - name: Parse DNF output and build payload
       ansible.builtin.shell: |
         python3 -c '
         import sys, json, re
+        from datetime import datetime, timezone, timedelta
+
+        # JST 時刻の生成 (+9時間)
+        jst = timezone(timedelta(hours=9))
+        now_jst = datetime.now(jst).strftime("%Y-%m-%d %H:%M:%S JST")
 
         raw = """{{ dnf_output.stdout }}"""
         pattern = re.compile(r"(RHSA-\d+:\S+)\s+([\w]+)/Sec\.\s+(\S+)")
@@ -35,23 +40,24 @@
                 if package not in advisories_map[advisory]["packages"]:
                     advisories_map[advisory]["packages"].append(package)
 
-        print(json.dumps(list(advisories_map.values())))
+        env_tag = "{{ tags.environment | default('dev') }}".capitalize()
+
+        payload = {
+            "hostname": "{{ inventory_hostname }}",
+            "environment": env_tag,
+            "scan_time": now_jst,
+            "vulnerabilities": list(advisories_map.values())
+        }
+
+        print(json.dumps(payload, indent=2))
         '
-      register: parsed_json_raw
+      register: parsed_json_payload
       changed_when: false
 
     # 3. AAP Runner 上に一時 JSON ファイルとして保存
     - name: Save JSON payload temporarily on AAP runner
       ansible.builtin.copy:
-        content: >-
-          {{
-            {
-              "hostname": inventory_hostname,
-              "environment": (tags.environment | default('dev')) | capitalize,
-              "scan_time": (now(true) + timedelta(hours=9)).strftime('%Y-%m-%d %H:%M:%S JST'),
-              "vulnerabilities": parsed_json_raw.stdout | from_json
-            } | to_nice_json(indent=2)
-          }}
+        content: "{{ parsed_json_payload.stdout }}"
         dest: "/tmp/{{ inventory_hostname }}.json"
         mode: "0644"
       delegate_to: localhost
