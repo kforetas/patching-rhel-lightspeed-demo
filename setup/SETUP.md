@@ -24,8 +24,6 @@ The setup looks like the following:
 |:--------|:--------|:----------|
 |`create_networks.yml`|N/A|Create required AWS network resources.|
 |`delete_networks.yml`|N/A|Delete AWS network resources created in `create_networks` playbook.|
-|`create_managed_vms.yml`|[roles.managed](roles/managed/README.md)|Create AWS instances and set up managed servers.|
-|`delete_managed_vms.yml`|N/A|Delete the instances created in `create_managed_vms` playbook.|
 |`create_aap_vm.yml`|[roles.aap](roles/aap/README.md)|Create an AWS instance and set up Ansible Automation Platform.|
 |`delete_aap_vm.yml`|N/A|Delete the instance created in `create_aap_vm` playbook.|
 
@@ -88,41 +86,6 @@ This playbook need to be run at the beginning.
 $ ansible-playbook create_networks.yml
 ```
 
-### Create managed servers
-These variables should be set in group_vars beforehand.
-```
-aws_vpc_subnet_name: patch_demo_subnet
-aws_securitygroup_name: patch_demo_sg
-aws_managed_instance:
-  dev:
-    ami: ami-06b08b819edcd2cf0 # ami of RHEL-9.7.0_HVM-20260513-x86_64-0-Hourly2-GP3
-    size: t2.small # can be bigger instance size
-  prod:
-    ami: ami-0dc4c409764b96fa9 # ami of RHEL-9.7.0_HVM-20260120-x86_64-0-Hourly2-GP3
-    size: t2.small # can be bigger instance size
-
-managed_vms_type: managed # should not be modified
-managed_vms_name_prefix: managed # should not be modified
-managed_vms_environment:
-  - dev # should not be modified
-  - prod # should not be modified
-
-purpose: patch_demo
-```
-
-And, the following variables are prompted at run-time.  Also refer to [roles.managed](roles/managed/README.md) for the role details.
-```
-aws_keypair_name # Your AWS key pair name corresponding to the private key
-rhsm_username # Red Hat Login name
-rhsm_passwd # Password for Red Hat Login
-mysql_root_passwd # MySQL root password for WordPress
-mysql_wp_passwd # MySQL user password for WordPress
-```
-
-This playbook can run after running `create_networks` playbook.
-```
-$ ansible-playbook create_managed_vms.yml
-```
 
 ### Create Ansible Automation Platform
 These variables should be set in group_vars beforehand.
