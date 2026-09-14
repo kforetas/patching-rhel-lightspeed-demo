@@ -4,6 +4,7 @@
 # Extra_vars: 
 # ----------------------------------------------
 # - project_name: Patch_RHEL_Demo
+# - inventory_name: Patch_Demo
 # - inventory_source: Patch_Demo_Source
 # - organization_name: Default
 # - label_environment: environment
@@ -128,6 +129,7 @@
       ansible.controller.workflow_job_template_node:
         identifier: node_sync_inventory
         workflow_job_template: "Apply Patch WF"
+        inventory: "{{ inventory_name }}"
         inventory_source: "{{ inventory_source }}"
         state: present
 
@@ -162,6 +164,7 @@
       ansible.controller.workflow_job_template_node:
         identifier: node_sync_inventory2
         workflow_job_template: "Apply Patch WF"
+        inventory: "{{ inventory_name }}"
         inventory_source: "{{ inventory_source }}"
         success_nodes:
           - node_reboot_vms
