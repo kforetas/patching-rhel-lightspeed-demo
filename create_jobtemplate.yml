@@ -27,9 +27,19 @@
 # - portal_security_group_id: 
 # - aap_workflow_url: 
 # - aap_bearer_token: 
+# - aap_controller_url: 
+# - ansible_user: 
+# - ansible_pw: 
 # ----------------------------------------------
 - name: Create a JobTemplate 
   hosts: localhost
+  
+  environment:
+    CONTROLLER_HOST: "{{ aap_controller_url }}"
+    CONTROLLER_USERNAME: "{{ ansible_user }}"
+    CONTROLLER_PASSWORD: "{{ ansible_pw }}"
+    CONTROLLER_VERIFY_SSL: false
+
   tasks:
     - name: Create JobTemplate - Create Managed VMs
       ansible.controller.job_template:

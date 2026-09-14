@@ -11,10 +11,20 @@
 # - slack_webhook_url: 
 # - portal_url: 
 # - aap_host: xxx.xxx.xxx.xxx
+# - aap_controller_url: 
+# - ansible_user: 
+# - ansible_pw: 
 # - remediation_dataset_url: https://github.com/kforetas/patching-rhel-lightspeed-demo/blob/main/datasets/remediation_dataset.yml
 # ----------------------------------------------
 - name: Create a Workflow 
   hosts: localhost
+
+  environment:
+    CONTROLLER_HOST: "{{ aap_controller_url }}"
+    CONTROLLER_USERNAME: "{{ ansible_user }}"
+    CONTROLLER_PASSWORD: "{{ ansible_pw }}"
+    CONTROLLER_VERIFY_SSL: false
+    
   tasks:
     # --------------------------------------------------------------------------
     # 1. Delete and Create VMs WF
