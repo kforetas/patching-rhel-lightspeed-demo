@@ -220,8 +220,6 @@
           description: "パッチ適用ジョブの実行を承認しますか？"
           timeout: 0
         state: present
-        success_nodes:
-          - Apply_Patch_WF
 
     - name: Create Workflow Node - Send Slack Launch
       ansible.controller.workflow_job_template_node:
