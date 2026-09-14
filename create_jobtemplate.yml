@@ -231,7 +231,7 @@
         labels:
           - "{{ label_patch }}"
         credentials: 
-          - "{{ aws_credential_name }}"
+          - "{{ aws_ssh_credential_name }}"
 
     - name: Create JobTemplate - Test VMs
       ansible.controller.job_template:
