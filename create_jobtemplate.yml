@@ -60,7 +60,7 @@
         # 起動時の Extra variables プロンプトを ON
         ask_variables_on_launch: false
         # 「権限昇格」を有効化
-        privilege_escalation: true
+        become_enabled: true
       
     - name: Create JobTemplate - Delete Managed VMs
       ansible.controller.job_template:
