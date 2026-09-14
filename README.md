@@ -1,4 +1,4 @@
-# patching-rhel-lightspeed-demo
+# patching-rhel-demo
 This repo includes ansible playbooks for a demo project of automating periodic patching process for RHEL with Red Hat Ansible Automation Platform.
 
 ## Automating patcing process for RHEL with Red Hat Ansible Automation Platform
@@ -163,7 +163,7 @@ At leaset the following four credentails need to be defined.
 1. Click `Projects` in the left menu.
 2. Click `Add` button.
 3. Enter the following fields:
-   - Name: `Patch_Lightspeed_Demo`
+   - Name: `Patch_RHEL_Demo`
    - Organization: `Default` (or your prefered organization)
    - Execution Environment: `Default execution environment`
    - Source Control Type: `Git`
