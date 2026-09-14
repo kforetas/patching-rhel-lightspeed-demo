@@ -129,7 +129,6 @@
       ansible.controller.workflow_job_template_node:
         identifier: node_sync_inventory
         workflow_job_template: "Apply Patch WF"
-        inventory: "{{ inventory_name }}"
         unified_job_template: "{{ inventory_source }}"
         state: present
 
@@ -164,7 +163,6 @@
       ansible.controller.workflow_job_template_node:
         identifier: node_sync_inventory2
         workflow_job_template: "Apply Patch WF"
-        inventory: "{{ inventory_name }}"
         unified_job_template: "{{ inventory_source }}"
         success_nodes:
           - node_reboot_vms
