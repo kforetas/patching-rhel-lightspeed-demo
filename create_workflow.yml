@@ -130,7 +130,7 @@
         identifier: node_sync_inventory
         workflow_job_template: "Apply Patch WF"
         inventory: "{{ inventory_name }}"
-        inventory_source: "{{ inventory_source }}"
+        unified_job_template: "{{ inventory_source }}"
         state: present
 
     - name: Create Workflow Node - Backup VMs
@@ -165,7 +165,7 @@
         identifier: node_sync_inventory2
         workflow_job_template: "Apply Patch WF"
         inventory: "{{ inventory_name }}"
-        inventory_source: "{{ inventory_source }}"
+        unified_job_template: "{{ inventory_source }}"
         success_nodes:
           - node_reboot_vms
         state: present
