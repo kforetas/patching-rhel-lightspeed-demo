@@ -50,7 +50,9 @@ Update the following line with your EC2 private key file.
 [default]
 private_key_file = "path to EC2 private key file"
 ```
-Note: chmod 600 patch-demo-key.pem
+Note: 
+- Create EC2 keypair at AWS EC2 menu and download it.
+- chmod 600 patch-demo-key.pem
 
 ### Environment variables
 In this setup, you should set the following environment variables on your control node.
