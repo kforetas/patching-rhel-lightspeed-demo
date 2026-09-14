@@ -5,6 +5,7 @@
 # ----------------------------------------------
 # - project_name: Patch_RHEL_Demo
 # - inventory_source: Patch_Demo_Source
+# - organization_name: Default
 # - label_environment: environment
 # - label_scan: scan
 # - label_patch: patch
