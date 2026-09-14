@@ -1,0 +1,40 @@
+# ----------------------------------------------
+# Extra_vars: 
+# ----------------------------------------------
+# - aap_controller_url: 
+# - ansible_user: 
+# - ansible_pw: 
+# ----------------------------------------------
+# Create Workflow
+# ----------------------------------------------
+- name: Create a Workflow 
+  hosts: localhost
+
+  environment:
+    CONTROLLER_HOST: "{{ aap_controller_url }}"
+    CONTROLLER_USERNAME: "{{ ansible_user }}"
+    CONTROLLER_PASSWORD: "{{ ansible_pw }}"
+    CONTROLLER_VERIFY_SSL: false
+    
+  tasks:
+    # --------------------------------------------------------------------------
+    # 5. Periodic Security Patching WF (全自動マスターワークフロー)
+    # --------------------------------------------------------------------------
+    - name: Create Workflow Node - Send Slack Launch
+      ansible.controller.workflow_job_template_node:
+        identifier: Slack_Launch
+        workflow_job_template: "Periodic Security Patching WF"
+        unified_job_template: "Send Slack Launch"
+        success_nodes:
+          - Patch_Approval
+        state: present
+
+    - name: Create Workflow Node - Advisory List Publisher WF
+      ansible.controller.workflow_job_template_node:
+        identifier: Advisory_List_Publisher_WF
+        workflow_job_template: "Periodic Security Patching WF"
+        unified_job_template: "Advisory List Publisher WF"
+        state: present
+        success_nodes:
+          - Slack_Launch
+    

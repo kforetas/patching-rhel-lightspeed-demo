@@ -1,4 +1,22 @@
 ---
+# ----------------------------------------------
+# Extra_vars: 
+# ----------------------------------------------
+# - project_name: Patch_RHEL_Demo
+# - inventory_name: Patch_Demo
+# - inventory_source: Patch_Demo_Source
+# - organization_name: Default
+# - label_environment: environment
+# - label_scan: scan
+# - label_patch: patch
+# - slack_webhook_url:
+# - portal_url: 
+# - aap_host: 
+# - aap_controller_url: 
+# - ansible_user: 
+# - ansible_pw: 
+# - remediation_dataset_url: https://github.com/kforetas/patching-rhel-lightspeed-demo/blob/main/datasets/remediation_dataset.yml
+# ----------------------------------------------
 # Create Workflow
 # ----------------------------------------------
 - name: Create a Workflow 
@@ -177,64 +195,3 @@
         state: present
         success_nodes:
           - Backup_VMs
-
-    # --------------------------------------------------------------------------
-    # 5. Periodic Security Patching WF (全自動マスターワークフロー)
-    # --------------------------------------------------------------------------
-    - name: Create Workflow - Periodic Security Patching WF
-      ansible.controller.workflow_job_template:
-        name: "Periodic Security Patching WF"
-        state: present
-        organization: "{{ organization_name }}"
-        labels:
-          - "{{ label_patch }}"
-        extra_vars:
-          slack_webhook_url: "{{ slack_webhook_url }}"
-          portal_url: "{{ portal_url }}"
-          aap_host: "{{ aap_host }}"
-          remediation_dataset_url: "{{ remediation_dataset_url }}"
-        ask_variables_on_launch: true
-
-    - name: Create Workflow Node - Send Slack Report
-      ansible.controller.workflow_job_template_node:
-        identifier: Slack_Report
-        workflow_job_template: "Periodic Security Patching WF"
-        unified_job_template: "Send Slack Report"
-        state: present
-
-    - name: Create Workflow Node - Apply Patch WF
-      ansible.controller.workflow_job_template_node:
-        identifier: Apply_Patch_WF
-        workflow_job_template: "Periodic Security Patching WF"
-        unified_job_template: "Apply Patch WF"
-        success_nodes:
-          - Slack_Report
-        state: present
-
-    - name: Create Workflow Node - Approval for Patching
-      ansible.controller.workflow_job_template_node:
-        identifier: Patch_Approval
-        workflow_job_template: "Periodic Security Patching WF"
-        approval_node:
-          name: "Approval for Patching"
-          description: "パッチ適用ジョブの実行を承認しますか？"
-          timeout: 0
-        state: present
-
-    - name: Create Workflow Node - Send Slack Launch
-      ansible.controller.workflow_job_template_node:
-        identifier: Slack_Launch
-        workflow_job_template: "Periodic Security Patching WF"
-        unified_job_template: "Send Slack Launch"
-        success_nodes:
-          - Patch_Approval
-        state: present
-
-    - name: Create Workflow Node - Advisory List Publisher WF
-      ansible.controller.workflow_job_template_node:
-        identifier: Advisory_List_Publisher_WF
-        workflow_job_template: "Periodic Security Patching WF"
-        unified_job_template: "Advisory List Publisher WF"
-        state: present
-        success_nodes:
-          - Slack_Launch
