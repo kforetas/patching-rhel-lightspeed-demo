@@ -39,6 +39,13 @@
         labels:
           - "{{ label_environment }}"
 
+    - name: Create Workflow Node - Create Managed VMs
+      ansible.controller.workflow_job_template_node:
+        identifier: node_create_vms
+        workflow_job_template: "Delete and Create VMs WF"
+        unified_job_template: "Create Managed VMs"
+        state: present
+
     - name: Create Workflow Node - Delete Managed VMs
       ansible.controller.workflow_job_template_node:
         identifier: node_delete_vms
@@ -47,13 +54,6 @@
         state: present
         success_nodes:
           - node_create_vms
-
-    - name: Create Workflow Node - Create Managed VMs
-      ansible.controller.workflow_job_template_node:
-        identifier: node_create_vms
-        workflow_job_template: "Delete and Create VMs WF"
-        unified_job_template: "Create Managed VMs"
-        state: present
 
     # --------------------------------------------------------------------------
     # 2. Scan WF
@@ -69,6 +69,13 @@
           slack_webhook_url: "{{ slack_webhook_url }}"
           portal_url: "{{ portal_url }}"
 
+    - name: Create Workflow Node - Send Slack Scan
+      ansible.controller.workflow_job_template_node:
+        identifier: node_send_slack_scan
+        workflow_job_template: "Scan WF"
+        unified_job_template: "Send Slack Scan"
+        state: present
+
     - name: Create Workflow Node - Scan Advisory
       ansible.controller.workflow_job_template_node:
         identifier: node_scan_advisory
@@ -77,13 +84,6 @@
         state: present
         success_nodes:
           - node_send_slack_scan
-
-    - name: Create Workflow Node - Send Slack Scan
-      ansible.controller.workflow_job_template_node:
-        identifier: node_send_slack_scan
-        workflow_job_template: "Scan WF"
-        unified_job_template: "Send Slack Scan"
-        state: present
 
     # --------------------------------------------------------------------------
     # 3. Advisory List Publisher WF
@@ -97,6 +97,13 @@
           - "{{ label_patch }}"
         ask_variables_on_launch: true
 
+    - name: Create Workflow Node - Sync Project
+      ansible.controller.workflow_job_template_node:
+        identifier: node_sync_project
+        workflow_job_template: "Advisory List Publisher WF"
+        unified_job_template: "{{ project_name }}"
+        state: present
+
     - name: Create Workflow Node - Publish_Advisory
       ansible.controller.workflow_job_template_node:
         identifier: node_publish_advisory
@@ -105,13 +112,6 @@
         state: present
         success_nodes:
           - node_sync_project
-
-    - name: Create Workflow Node - Sync Project
-      ansible.controller.workflow_job_template_node:
-        identifier: node_sync_project
-        workflow_job_template: "Advisory List Publisher WF"
-        unified_job_template: "{{ project_name }}"
-        state: present
 
     # --------------------------------------------------------------------------
     # 4. Apply Patch WF
@@ -125,58 +125,11 @@
           - "{{ label_patch }}"
         ask_variables_on_launch: true
 
-    - name: Create Workflow Node - Sync AWS Inventory Source
+    - name: Create Workflow Node - Scan Advisory (Apply Patch WF)
       ansible.controller.workflow_job_template_node:
-        identifier: node_sync_inventory
+        identifier: node_apply_patch_scan_advisory
         workflow_job_template: "Apply Patch WF"
-        unified_job_template: "{{ inventory_source }}"
-        state: present
-        success_nodes:
-          - node_backup_vms
-
-    - name: Create Workflow Node - Backup VMs
-      ansible.controller.workflow_job_template_node:
-        identifier: node_backup_vms
-        workflow_job_template: "Apply Patch WF"
-        unified_job_template: "Backup VMs"
-        success_nodes:
-          - node_apply_errata_to_vms
-        state: present
-
-    - name: Create Workflow Node - Apply Errata to VMs
-      ansible.controller.workflow_job_template_node:
-        identifier: node_apply_errata_to_vms
-        workflow_job_template: "Apply Patch WF"
-        unified_job_template: "Apply Errata to VMs"
-        success_nodes:
-          - node_reboot_vms
-        state: present
-
-    - name: Create Workflow Node - Reboot VMs
-      ansible.controller.workflow_job_template_node:
-        identifier: node_reboot_vms
-        workflow_job_template: "Apply Patch WF"
-        unified_job_template: "Reboot VMs"
-        success_nodes:
-          - node_sync_inventory2
-        state: present
-
-    - name: Create Workflow Node - Sync AWS Inventory Source2
-      ansible.controller.workflow_job_template_node:
-        identifier: node_sync_inventory2
-        workflow_job_template: "Apply Patch WF"
-        unified_job_template: "{{ inventory_source }}"
-        success_nodes:
-          - node_test_vms
-        state: present
-
-    - name: Create Workflow Node - Test VMs
-      ansible.controller.workflow_job_template_node:
-        identifier: node_test_vms
-        workflow_job_template: "Apply Patch WF"
-        unified_job_template: "Test VMs"
-        success_nodes:
-          - node_test_app
+        unified_job_template: "Scan Advisory"
         state: present
 
     - name: Create Workflow Node - Test App
@@ -188,12 +141,59 @@
           - node_apply_patch_scan_advisory
         state: present
 
-    - name: Create Workflow Node - Scan Advisory (Apply Patch WF)
+    - name: Create Workflow Node - Test VMs
       ansible.controller.workflow_job_template_node:
-        identifier: node_apply_patch_scan_advisory
+        identifier: node_test_vms
         workflow_job_template: "Apply Patch WF"
-        unified_job_template: "Scan Advisory"
+        unified_job_template: "Test VMs"
+        success_nodes:
+          - node_test_app
         state: present
+
+    - name: Create Workflow Node - Sync AWS Inventory Source2
+      ansible.controller.workflow_job_template_node:
+        identifier: node_sync_inventory2
+        workflow_job_template: "Apply Patch WF"
+        unified_job_template: "{{ inventory_source }}"
+        success_nodes:
+          - node_test_vms
+        state: present
+
+    - name: Create Workflow Node - Reboot VMs
+      ansible.controller.workflow_job_template_node:
+        identifier: node_reboot_vms
+        workflow_job_template: "Apply Patch WF"
+        unified_job_template: "Reboot VMs"
+        success_nodes:
+          - node_sync_inventory2
+        state: present
+
+    - name: Create Workflow Node - Apply Errata to VMs
+      ansible.controller.workflow_job_template_node:
+        identifier: node_apply_errata_to_vms
+        workflow_job_template: "Apply Patch WF"
+        unified_job_template: "Apply Errata to VMs"
+        success_nodes:
+          - node_reboot_vms
+        state: present
+
+    - name: Create Workflow Node - Backup VMs
+      ansible.controller.workflow_job_template_node:
+        identifier: node_backup_vms
+        workflow_job_template: "Apply Patch WF"
+        unified_job_template: "Backup VMs"
+        success_nodes:
+          - node_apply_errata_to_vms
+        state: present
+
+    - name: Create Workflow Node - Sync AWS Inventory Source
+      ansible.controller.workflow_job_template_node:
+        identifier: node_sync_inventory
+        workflow_job_template: "Apply Patch WF"
+        unified_job_template: "{{ inventory_source }}"
+        state: present
+        success_nodes:
+          - node_backup_vms
 
     # --------------------------------------------------------------------------
     # 5. Periodic Security Patching WF (全自動マスターワークフロー)
@@ -212,22 +212,20 @@
           remediation_dataset_url: "{{ remediation_dataset_url }}"
         ask_variables_on_launch: true
 
-    - name: Create Workflow Node - Advisory List Publisher WF
+    - name: Create Workflow Node - Send Slack Report
       ansible.controller.workflow_job_template_node:
-        identifier: node_advisory_list_wf
+        identifier: node_send_slack_report
         workflow_job_template: "Periodic Security Patching WF"
-        unified_job_template: "Advisory List Publisher WF"
+        unified_job_template: "Send Slack Report"
         state: present
-        success_nodes:
-          - node_send_slack_launch
 
-    - name: Create Workflow Node - Send Slack Launch
+    - name: Create Workflow Node - Apply Patch WF
       ansible.controller.workflow_job_template_node:
-        identifier: node_send_slack_launch
+        identifier: node_apply_patch_wf
         workflow_job_template: "Periodic Security Patching WF"
-        unified_job_template: "Send Slack Launch"
+        unified_job_template: "Apply Patch WF"
         success_nodes:
-          - node_patch_approval
+          - node_send_slack_report
         state: present
 
     - name: Create Workflow Node - Approval for Patching
@@ -242,18 +240,20 @@
           - node_apply_patch_wf
         state: present
 
-    - name: Create Workflow Node - Apply Patch WF
+    - name: Create Workflow Node - Send Slack Launch
       ansible.controller.workflow_job_template_node:
-        identifier: node_apply_patch_wf
+        identifier: node_send_slack_launch
         workflow_job_template: "Periodic Security Patching WF"
-        unified_job_template: "Apply Patch WF"
+        unified_job_template: "Send Slack Launch"
         success_nodes:
-          - node_send_slack_report
+          - node_patch_approval
         state: present
 
-    - name: Create Workflow Node - Send Slack Report
+    - name: Create Workflow Node - Advisory List Publisher WF
       ansible.controller.workflow_job_template_node:
-        identifier: node_send_slack_report
+        identifier: node_advisory_list_wf
         workflow_job_template: "Periodic Security Patching WF"
-        unified_job_template: "Send Slack Report"
+        unified_job_template: "Advisory List Publisher WF"
         state: present
+        success_nodes:
+          - node_send_slack_launch
