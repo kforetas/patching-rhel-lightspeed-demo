@@ -3,7 +3,7 @@
 # ----------------------------------------------
 # Extra_vars: 
 # ----------------------------------------------
-# - project_name: Patch_Lightspeed_Demo
+# - project_name: Patch_RHEL_Demo
 # - inventory_source: Patch_Demo_Source
 # - label_environment: environment
 # - label_scan: scan

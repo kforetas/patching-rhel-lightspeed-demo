@@ -4,7 +4,7 @@
 # Extra_vars: 
 # ----------------------------------------------
 # - inventory_name: Patch_Demo
-# - project_name: Patch_Lightspeed_Demo
+# - project_name: Patch_RHEL_Demo
 # - execution_environment_name: Default execution environment
 # - organization_name: Default
 # - aws_credential_name: aws_cred
