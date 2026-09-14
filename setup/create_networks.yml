@@ -105,6 +105,10 @@
             from_port: 9000
             to_port: 9000
             cidr_ip: 0.0.0.0/0
+          - proto: tcp
+            from_port: 8501
+            to_port: 8501
+            cidr_ip: 0.0.0.0/0
         rules_egress:
           - proto: all
             cidr_ip: 0.0.0.0/0
