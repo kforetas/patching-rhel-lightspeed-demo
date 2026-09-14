@@ -41,6 +41,21 @@
     CONTROLLER_VERIFY_SSL: false
 
   tasks:
+    # --------------------------------------------------------------------------
+    # 0. ラベルの事前作成タスク
+    # --------------------------------------------------------------------------
+    - name: Ensure Labels exist in AAP
+      ansible.controller.label:
+        name: "{{ item }}"
+        organization: "{{ organization_name }}"
+        state: present
+      loop:
+        - "{{ label_environment }}"
+        - "{{ label_scan }}"
+        - "{{ label_patch }}"
+    # --------------------------------------------------------------------------
+    # 1. JobTemplate作成
+    # --------------------------------------------------------------------------
     - name: Create JobTemplate - Create Managed VMs
       ansible.controller.job_template:
         name: "Create Managed VMs"
