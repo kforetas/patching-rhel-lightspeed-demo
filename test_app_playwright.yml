@@ -74,7 +74,7 @@
 
   vars:
     remediation_group: canonical_remediation_targets
-    test_dir: "/home/ec2-user/patch-aap-demo/test"
+    test_dir: "/home/ec2-user/test"
 
   tasks:
     - name: "Test the application"
