@@ -263,6 +263,22 @@
         credentials: 
           - "{{ aws_credential_name }}"
 
+    - name: Create JobTemplate - Test App Playwright
+      ansible.controller.job_template:
+        name: "Test App Playwright"
+        playbook: test_app_playwright.yml
+        job_type: run
+        inventory: "{{ inventory_name }}"
+        project: "{{ project_name }}"
+        state: present
+        execution_environment: "{{ execution_environment_name }}"
+        organization: "{{ organization_name }}"
+        labels:
+          - "{{ label_patch }}"
+        credentials: 
+          - "{{ aws_credential_name }}"
+          - "{{ aws_ssh_credential_name }}"
+
     - name: Create JobTemplate - Send Slack Report
       ansible.controller.job_template:
         name: "Send Slack Report"
