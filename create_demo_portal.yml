@@ -63,6 +63,7 @@
     aap_workflow_url: "{{ aap_workflow_url | default('https://0.0.0.0/api/controller/v2/workflow_job_templates/19/launch/') }}"
     aap_bearer_token: "{{ aap_bearer_token }}"
     container_image: "docker.io/rhnconsultingkemori/vulnerability-demo-portal:latest"
+    test_dir: "/home/ec2-user/test"
 
   tasks:
     - name: Ensure Podman and SELinux management packages are installed
@@ -72,7 +73,7 @@
           - policycoreutils-python-utils
         state: present
 
-    - name: Create data directory
+    - name: Create data directory for Streamlit portal
       ansible.builtin.file:
         path: "/home/ec2-user/data"
         state: directory
@@ -80,19 +81,85 @@
         group: ec2-user
         mode: "0777"
 
-    - name: Set SELinux file context rule for data directory
+    - name: Create test and test/data directories for Playwright UI testing
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: ec2-user
+        group: ec2-user
+        mode: "0755"
+      loop:
+        - "{{ test_dir }}"
+        - "{{ test_dir }}/data"
+
+    - name: Set SELinux file context rules for data and test directories
       ansible.builtin.command:
-        cmd: semanage fcontext -a -t container_file_t "/home/ec2-user/data(/.*)?"
+        cmd: "semanage fcontext -a -t container_file_t '{{ item }}(/.*)?'"
+      loop:
+        - "/home/ec2-user/data"
+        - "{{ test_dir }}"
       register: semanage_result
       changed_when: false
       failed_when: false
 
-    - name: Apply SELinux context to data directory
+    - name: Apply SELinux context to data and test directories
       ansible.builtin.file:
-        path: "/home/ec2-user/data"
+        path: "{{ item }}"
         setype: container_file_t
         state: directory
         recurse: true
+      loop:
+        - "/home/ec2-user/data"
+        - "{{ test_dir }}"
+
+    - name: Create test_wordpress.py for Playwright execution
+      ansible.builtin.copy:
+        dest: "{{ test_dir }}/test_wordpress.py"
+        owner: ec2-user
+        group: ec2-user
+        mode: "0644"
+        content: |
+          import os
+          import re
+          from playwright.sync_api import sync_playwright, expect
+
+          TARGET_URL = os.getenv("TARGET_URL", "http://localhost")
+
+          def run_test():
+              with sync_playwright() as p:
+                  print(f"\n[INFO] Launching Chromium browser...")
+                  browser = p.chromium.launch(
+                      headless=True,
+                      args=["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"]
+                  )
+                  context = browser.new_context()
+                  page = context.new_page()
+
+                  print(f"[INFO] Connecting to {TARGET_URL} ...")
+                  # 1. DOMコンテンツ構築完了までロード待機（タイムアウト180秒）
+                  response = page.goto(TARGET_URL, wait_until="domcontentloaded", timeout=180000)
+                  print(f"[INFO] HTTP Status Code: {response.status if response else 'No Response'}")
+
+                  # 2. サイトタイトルの検証
+                  expect(page).to_have_title(re.compile(r"DemoSite", re.IGNORECASE), timeout=30000)
+                  print(f"[INFO] Page title validated: '{page.title()}'")
+
+                  # 3. body 要素が表示されるのを待ってから DB 接続エラー確認
+                  page.wait_for_selector("body", timeout=30000)
+                  body_text = page.inner_text("body")
+                  assert "Error establishing a database connection" not in body_text, "DB接続エラーが発生しています"
+                  print("[INFO] DB Connection check PASSED.")
+
+                  # 4. スクリーンショット保存
+                  os.makedirs("/output", exist_ok=True)
+                  screenshot_path = "/output/wordpress_test_result.png"
+                  page.screenshot(path=screenshot_path, full_page=True)
+                  print(f"[INFO] Screenshot successfully saved to {screenshot_path}")
+
+                  browser.close()
+
+          if __name__ == "__main__":
+              run_test()
 
     # 既存の同名コンテナがあれば安全に停止・削除
     - name: Remove existing Podman container if present
