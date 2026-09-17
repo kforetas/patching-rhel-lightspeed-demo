@@ -1,0 +1,114 @@
+---
+- name: Prepare app test targets
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  tasks:
+    - name: Load remediation dataset
+      ansible.builtin.include_tasks:
+        file: "{{ playbook_dir }}/tasks/load_remediation_targets.yml"
+
+    - name: Validate AWS variables
+      ansible.builtin.assert:
+        that:
+          - aws_region is defined
+          - aws_region | length > 0
+        fail_msg: "aws_region must be defined."
+
+    - name: Get EC2 information for remediation targets
+      amazon.aws.ec2_instance_info:
+        region: "{{ aws_region }}"
+        filters:
+          private-dns-name: "{{ item.key }}"
+          instance-state-name:
+            - pending
+            - running
+            - stopping
+            - stopped
+      loop: "{{ remediation_dataset | dict2items }}"
+      loop_control:
+        label: "{{ item.key }}"
+      register: remediation_ec2_info
+
+    - name: Validate that exactly one EC2 instance was found
+      ansible.builtin.assert:
+        that:
+          - item.instances is defined
+          - item.instances | length == 1
+        fail_msg: >-
+          Expected exactly one EC2 instance for inventory host
+          '{{ item.item.key }}', but found
+          {{ item.instances | default([]) | length }}.
+      loop: "{{ remediation_ec2_info.results }}"
+      loop_control:
+        label: "{{ item.item.key }}"
+
+    - name: Create remediation group with EC2 instance information
+      ansible.builtin.add_host:
+        name: "{{ item.item.key }}"
+        groups: "{{ remediation_group }}"
+        remediation_advisories: >-
+          {{ item.item.value | unique | sort | list }}
+        ec2_public_dns_name: "{{ item.instances[0].public_dns_name }}"
+        ec2_private_dns_name: "{{ item.instances[0].private_dns_name }}"
+      loop: "{{ remediation_ec2_info.results }}"
+      loop_control:
+        label: >-
+          {{ item.item.key }} -> {{ item.instances[0].public_dns_name }}
+
+    - name: Show resolved test targets
+      ansible.builtin.debug:
+        msg:
+          host: "{{ item }}"
+          public_dns_name: "{{ hostvars[item].public_dns_name }}"
+      loop: "{{ groups[remediation_group] }}"
+      loop_control:
+        label: "{{ item }}"
+
+- name: Test the application of the restarted instances
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    remediation_group: canonical_remediation_targets
+
+  tasks:
+    - name: "Test the application"
+      ansible.builtin.debug:
+        msg: "Performing UI Test with Playwright"
+
+    - name: Ensure output directory exists for screenshots
+      ansible.builtin.file:
+        path: "{{ playbook_dir }}/test/data"
+        state: directory
+        mode: "0755"
+
+    # GET ディレクトリ確認 & サイトタイトル確認 & DB接続確認 & スクリーンショット取得を Playwright で一括実行
+    - name: Run Playwright UI Test inside Podman Container
+      ansible.builtin.command:
+        cmd: >-
+          podman run --rm
+          --net=host
+          -e TARGET_URL="http://{{ hostvars[item].public_dns_name }}/wordpress/"
+          -v {{ playbook_dir }}/test:/workspace:Z
+          -v {{ playbook_dir }}/test/data:/output:Z
+          -w /workspace
+          mcr.microsoft.com/playwright/python:v1.49.0-jammy
+          sh -c "pip install --quiet playwright==1.49.0 && python3 test_wordpress.py"
+      loop: "{{ groups[remediation_group] }}"
+      loop_control:
+        label: "{{ item }} -> http://{{ hostvars[item].public_dns_name }}/wordpress/"
+      register: playwright_test_results
+      changed_when: false
+
+    - name: Verify screenshot generation
+      ansible.builtin.stat:
+        path: "{{ playbook_dir }}/test/data/wordpress_test_result.png"
+      register: screenshot_file
+
+    - name: Test results
+      ansible.builtin.debug:
+        msg: "All Playwright UI tests succeeded. Screenshot captured successfully."
+      when: screenshot_file.stat.exists
