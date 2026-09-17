@@ -133,11 +133,11 @@
         unified_job_template: "Scan Advisory"
         state: present
 
-    - name: Create Workflow Node - Test App
+    - name: Create Workflow Node - Test App Playwright
       ansible.controller.workflow_job_template_node:
-        identifier: Test_App
+        identifier: Test_App_Playwright
         workflow_job_template: "Apply Patch WF"
-        unified_job_template: "Test App"
+        unified_job_template: "Test App Playwright"
         success_nodes:
           - Scan_Advisory
         state: present
@@ -148,7 +148,7 @@
         workflow_job_template: "Apply Patch WF"
         unified_job_template: "Test VMs"
         success_nodes:
-          - Test_App
+          - Test_App_Playwright
         state: present
 
     - name: Create Workflow Node - Sync AWS Inventory Source2
