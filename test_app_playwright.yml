@@ -66,34 +66,35 @@
       loop_control:
         label: "{{ item }}"
 
+# ポータルサーバー上で Podman を実行するように指定
 - name: Test the application of the restarted instances
-  hosts: localhost
-  connection: local
+  hosts: tag_Name_demo_web_portal
+  become: false
   gather_facts: false
 
   vars:
     remediation_group: canonical_remediation_targets
+    test_dir: "/home/ec2-user/patch-aap-demo/test"
 
   tasks:
     - name: "Test the application"
       ansible.builtin.debug:
-        msg: "Performing UI Test with Playwright"
+        msg: "Performing UI Test with Playwright on Portal Server"
 
     - name: Ensure output directory exists for screenshots
       ansible.builtin.file:
-        path: "{{ playbook_dir }}/test/data"
+        path: "{{ test_dir }}/data"
         state: directory
         mode: "0755"
 
-    # GET ディレクトリ確認 & サイトタイトル確認 & DB接続確認 & スクリーンショット取得を Playwright で一括実行
     - name: Run Playwright UI Test inside Podman Container
       ansible.builtin.command:
         cmd: >-
           podman run --rm
           --net=host
           -e TARGET_URL="http://{{ hostvars[item].public_dns_name }}/wordpress/"
-          -v {{ playbook_dir }}/test:/workspace:Z
-          -v {{ playbook_dir }}/test/data:/output:Z
+          -v {{ test_dir }}:/workspace:Z
+          -v {{ test_dir }}/data:/output:Z
           -w /workspace
           mcr.microsoft.com/playwright/python:v1.49.0-jammy
           sh -c "pip install --quiet playwright==1.49.0 && python3 test_wordpress.py"
@@ -105,10 +106,10 @@
 
     - name: Verify screenshot generation
       ansible.builtin.stat:
-        path: "{{ playbook_dir }}/test/data/wordpress_test_result.png"
+        path: "{{ test_dir }}/data/wordpress_test_result.png"
       register: screenshot_file
 
     - name: Test results
       ansible.builtin.debug:
-        msg: "All Playwright UI tests succeeded. Screenshot captured successfully."
+        msg: "All Playwright UI tests succeeded. Screenshot captured successfully at {{ test_dir }}/data/wordpress_test_result.png"
       when: screenshot_file.stat.exists
