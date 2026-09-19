@@ -1,4 +1,4 @@
-ip-10-1-1-83.ap-northeast-1.compute.internal:
+ip-10-1-1-200.ap-northeast-1.compute.internal:
 - RHSA-2026:18597
 - RHSA-2026:58572
 - RHSA-2026:36318
@@ -50,6 +50,7 @@ ip-10-1-1-83.ap-northeast-1.compute.internal:
 - RHSA-2026:66180
 - RHSA-2026:67150
 - RHSA-2026:67470
+- RHSA-2026:68570
 - RHSA-2026:18587
 - RHSA-2026:19225
 - RHSA-2026:19357
